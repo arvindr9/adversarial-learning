@@ -49,7 +49,7 @@ for est in n_est:
 
 
 	bounds = [(-0.5,0.5)]
-	x0 = [0]
+	x0 = [0]*784
 	#iterations = [100, 200, 500, 1000]
 	epsilons = [0.1, 0.15, 0.2, 0.3, 0.5, 0.7, 1.0]
 
@@ -62,11 +62,11 @@ for est in n_est:
 	Change the loops for iterations to epsilon
 
 	Plot:
-	Radius of ball vs accuracy
+	Epsilon vs accuracy
 	Confidence bands
 	'''
 
-	iterations = 100
+	iterations = 10
 	mean_fitness = []
 	mean_noise = []
 	var_noise = []
@@ -82,14 +82,17 @@ for est in n_est:
 		noise_label = []
 		correct_label = []
 
-		print('Current Iteration: {}'.format(i))
+		print('Current Epsilon: {}'.format(epsilon))
 		for image_no, image in enumerate(eval_data_ss[1:100,:]):
 
 			print('Current Image: {}'.format(image_no))
-			minimizer_kwargs = dict(method = "L-BFGS-B", bounds = bounds, args = (image,clf))
+			cons = ({'type': 'ineq',
+					'fun': lambda noise: epsilon**2 - norm(noise)})
+			minimizer_kwargs = dict(method = "cobyla", args = (image,clf), constraints = cons, options = {'maxiter': 100})
 			res = basinhopping(fitness_func, niter = iterations, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			optimal_fitness.append(res['fun'])
-			optimal_noise.append(res['x'])
+			noise_norm = norm(res['x'])
+			optimal_noise.append(noise_norm)
 			correct_label.append(clf.predict(image.reshape(1,-1))[0])
 			noise_label.append(clf.predict((image+res['x'][0]).reshape(1,-1))[0])
 
@@ -126,14 +129,14 @@ for est in n_est:
 	#Results
 	f1, ax1 = plt.subplots()
 	ax1.plot(epsilons, mean_fitness)
-	plt.title('Mean Optimal fitness vs iterations')
+	plt.title('Mean Optimal fitness vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Mean Optimal fitness values')
 	plt_name=  'plot_fitness'+str(est) +'.png'
 	plt.savefig(plt_name)
 
 	f2, ax2 = plt.subplots()
-	ax2.plot(iterations, mean_noise)
+	ax2.plot(epsilons, mean_noise)
 	plt.title('Mean Optimal noise vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Mean Optimal noise')
@@ -141,7 +144,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 	
 	f3, ax3 = plt.subplots()
-	ax3.plot(iterations, var_noise)
+	ax3.plot(epsilons, var_noise)
 	plt.title('Noise std vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Std deviation')
@@ -149,7 +152,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 
 	f4, ax4 = plt.subplots()
-	ax4.plot(iterations, min_noise)
+	ax4.plot(epsilons, min_noise)
 	plt.title('Min noise vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Min Noise')
@@ -157,7 +160,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 
 	f5, ax5 = plt.subplots()
-	ax5.plot(iterations, max_noise)
+	ax5.plot(epsilons, max_noise)
 	plt.title('Max noise vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Max Noise')
@@ -165,7 +168,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 
 	f6, ax6 = plt.subplots()
-	ax6.plot(iterations, wrong_output)
+	ax6.plot(epsilons, wrong_output)
 	plt.title('Percentage misclassified vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Percentage misclassified')
