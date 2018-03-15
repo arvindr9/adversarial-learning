@@ -50,9 +50,22 @@ for est in n_est:
 
 	bounds = [(-0.5,0.5)]
 	x0 = [0]
-	iterations = [100, 200, 500, 1000]
+	iterations = [100, 200, 500, 1000] #change to epsilon values
 
+	'''
+	TODO:
+	Make noise vector 784*1
+	Change fitness function (check dimensions)
+	basinhopping: make bounds a 784*1 vector, x0 is 784-d
+	Sample noise values from gaussian randomly (add more tuples to bounds)
+	Change the loops for iterations to epsilon
 
+	Plot:
+	Radius of ball vs accuracy
+	Confidence bands
+	'''
+
+	iterations = 100
 	mean_fitness = []
 	mean_noise = []
 	var_noise = []
@@ -61,7 +74,7 @@ for est in n_est:
 	wrong_output= []
 
 	print('Starting the optimization')
-	for i in iterations:
+	for i in range(iterations): 
 
 		optimal_fitness = []
 		optimal_noise = []
@@ -73,7 +86,7 @@ for est in n_est:
 
 			print('Current Image: {}'.format(image_no))
 			minimizer_kwargs = dict(method = "L-BFGS-B", bounds = bounds, args = (image,clf))
-			res = basinhopping(fitness_func, niter = i, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+			res = basinhopping(fitness_func, niter = iterations, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			optimal_fitness.append(res['fun'])
 			optimal_noise.append(res['x'])
 			correct_label.append(clf.predict(image.reshape(1,-1))[0])
@@ -98,7 +111,10 @@ for est in n_est:
 	wrong_output = np.array(wrong_output).reshape(-1,1)
 
 	data = np.concatenate((mean_fitness, mean_noise, var_noise, min_noise, max_noise, wrong_output), axis = 1)
-
+	
+	'''
+	run for smaller number of iterations first
+	'''
 
 	#Writing data to file
 	file = './data' + str(est) + '.csv'
