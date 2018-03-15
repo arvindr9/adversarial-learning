@@ -50,7 +50,8 @@ for est in n_est:
 
 	bounds = [(-0.5,0.5)]
 	x0 = [0]
-	iterations = [100, 200, 500, 1000] #change to epsilon values
+	#iterations = [100, 200, 500, 1000]
+	epsilons = [0.1, 0.15, 0.2, 0.3, 0.5, 0.7, 1.0]
 
 	'''
 	TODO:
@@ -74,7 +75,7 @@ for est in n_est:
 	wrong_output= []
 
 	print('Starting the optimization')
-	for i in range(iterations): 
+	for epsilon in epsilons: 
 
 		optimal_fitness = []
 		optimal_noise = []
@@ -124,50 +125,49 @@ for est in n_est:
 
 	#Results
 	f1, ax1 = plt.subplots()
-	ax1.plot(iterations, mean_fitness)
+	ax1.plot(epsilons, mean_fitness)
 	plt.title('Mean Optimal fitness vs iterations')
-	plt.xlabel('Iterations')
+	plt.xlabel('Epsilon')
 	plt.ylabel('Mean Optimal fitness values')
 	plt_name=  'plot_fitness'+str(est) +'.png'
 	plt.savefig(plt_name)
 
 	f2, ax2 = plt.subplots()
 	ax2.plot(iterations, mean_noise)
-	plt.title('Mean Optimal noise vs iterations')
-	plt.xlabel('Iterations')
+	plt.title('Mean Optimal noise vs epsilon')
+	plt.xlabel('Epsilon')
 	plt.ylabel('Mean Optimal noise')
 	plt_name = 'plot_noise' + str(est) + '.png'
 	plt.savefig(plt_name)
-
-
+	
 	f3, ax3 = plt.subplots()
 	ax3.plot(iterations, var_noise)
-	plt.title('Noise std vs iterations')
-	plt.xlabel('Iterations')
+	plt.title('Noise std vs epsilon')
+	plt.xlabel('Epsilon')
 	plt.ylabel('Std deviation')
 	plt_name = 'plot_variance' + str(est) + '.png'
 	plt.savefig(plt_name)
 
 	f4, ax4 = plt.subplots()
 	ax4.plot(iterations, min_noise)
-	plt.title('Min noise vs iterations')
-	plt.xlabel('Iterations')
+	plt.title('Min noise vs epsilon')
+	plt.xlabel('Epsilon')
 	plt.ylabel('Min Noise')
 	plt_name = 'plot_min' + str(est) + '.png'
 	plt.savefig(plt_name)
 
 	f5, ax5 = plt.subplots()
 	ax5.plot(iterations, max_noise)
-	plt.title('Max noise vs iterations')
-	plt.xlabel('Iterations')
+	plt.title('Max noise vs epsilon')
+	plt.xlabel('Epsilon')
 	plt.ylabel('Max Noise')
 	plt_name = 'plot_max' + str(est) + '.png'
 	plt.savefig(plt_name)
 
 	f6, ax6 = plt.subplots()
 	ax6.plot(iterations, wrong_output)
-	plt.title('Percentage misclassified vs iterations')
-	plt.xlabel('Iterations')
+	plt.title('Percentage misclassified vs epsilon')
+	plt.xlabel('Epsilon')
 	plt.ylabel('Percentage misclassified')
 	plt_name = 'plot_misclassified' + str(est) + '.png'
 	plt.savefig(plt_name)
