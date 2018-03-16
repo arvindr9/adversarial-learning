@@ -46,33 +46,26 @@ for est in n_est:
 	clf.fit(train_data_ss, train_labels_ss)
 	accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
 
+	print(f"score: {accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))}")
 
-
-	bounds = [(-0.5,0.5)]
 	x0 = [0]*784
 	#iterations = [100, 200, 500, 1000]
-	epsilons = [0.1, 0.15, 0.2, 0.3, 0.5, 0.7, 1.0]
+	epsilons = [0.15, 0.2, 0.3, 0.5, 0.7, 1.0]
 
 	'''
 	TODO:
-	Make noise vector 784*1
-	Change fitness function (check dimensions)
-	basinhopping: make bounds a 784*1 vector, x0 is 784-d
-	Sample noise values from gaussian randomly (add more tuples to bounds)
-	Change the loops for iterations to epsilon
-
 	Plot:
 	Epsilon vs accuracy
 	Confidence bands
 	'''
 
-	iterations = 10
 	mean_fitness = []
 	mean_noise = []
 	var_noise = []
 	min_noise = []
 	max_noise = []
 	wrong_output= []
+	print(f"noise norm: {norm(x0)}")
 
 	print('Starting the optimization')
 	for epsilon in epsilons: 
@@ -84,15 +77,16 @@ for est in n_est:
 
 		print('Current Epsilon: {}'.format(epsilon))
 		for image_no, image in enumerate(eval_data_ss[1:100,:]):
-
+			x0 = [0] * 784
 			print('Current Image: {}'.format(image_no))
 			cons = ({'type': 'ineq',
-					'fun': lambda noise: epsilon**2 - norm(noise)})
-			minimizer_kwargs = dict(method = "cobyla", args = (image,clf), constraints = cons, options = {'maxiter': 100})
-			res = basinhopping(fitness_func, niter = iterations, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+					'fun': lambda noise: epsilon**2 - norm(np.array(noise))})
+			minimizer_kwargs = dict(method = "slsqp", args = (image,clf), constraints = cons, options = {'maxiter': 100})
+			res = basinhopping(fitness_func, niter = 1, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			optimal_fitness.append(res['fun'])
 			noise_norm = norm(res['x'])
 			optimal_noise.append(noise_norm)
+			#print(f"noise norm: {noise_norm}")
 			correct_label.append(clf.predict(image.reshape(1,-1))[0])
 			noise_label.append(clf.predict((image+res['x'][0]).reshape(1,-1))[0])
 
@@ -116,9 +110,7 @@ for est in n_est:
 
 	data = np.concatenate((mean_fitness, mean_noise, var_noise, min_noise, max_noise, wrong_output), axis = 1)
 	
-	'''
-	run for smaller number of iterations first
-	'''
+
 
 	#Writing data to file
 	file = './data' + str(est) + '.csv'
