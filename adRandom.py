@@ -50,13 +50,14 @@ for est in n_est:
 
 	x0 = [0]*784
 	#iterations = [100, 200, 500, 1000]
-	epsilons = [0.15]#, 0.2, 0.3, 0.5, 0.7, 1.0]
+	epsilons = [0.01, 0.05, 0.1, 0.3, 0.5, 0.8, 1.0]
 
 	'''
 	TODO:
 	Plot:
 	Epsilon vs accuracy
 	Confidence bands
+	Single plot for data from multiple estimators
 	'''
 
 	mean_fitness = []
@@ -65,15 +66,26 @@ for est in n_est:
 	min_noise = []
 	max_noise = []
 	wrong_output= []
+	mean_l0 = []
+	min_l0 = []
+	var_l0 = []
+	max_l0 = []
+	mean_l1 = []
+	min_l1 = []
+	max_l1 = []
+	var_l1 = []
 	print(f"noise norm: {norm(x0)}")
 
 	print('Starting the optimization')
-	for epsilon in epsilons: 
+	for epsilon in epsilons:
 
 		optimal_fitness = []
 		optimal_noise = []
 		noise_label = []
 		correct_label = []
+		optimal_l0 = []
+		optimal_l1 = []
+
 
 		print('Current Epsilon: {}'.format(epsilon))
 		for image_no, image in enumerate(eval_data_ss[1:100,:]):
@@ -85,7 +97,12 @@ for est in n_est:
 			res = basinhopping(fitness_func, niter = 1, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			optimal_fitness.append(res['fun'])
 			noise_norm = norm(res['x'])
+			l0_norm = norm(res['x'], ord = 0)
+			l1_norm = norm(res['x'], ord = 1)
+			
 			optimal_noise.append(noise_norm)
+			optimal_l0.append(l0_norm)
+			optimal_l1.append(l1_norm)
 			#print(f"noise norm: {noise_norm}")
 			correct_label.append(clf.predict(image.reshape(1,-1))[0])
 			noise_label.append(clf.predict((image+res['x'][0]).reshape(1,-1))[0])
@@ -95,6 +112,17 @@ for est in n_est:
 		min_noise.append(np.min(optimal_noise))
 		max_noise.append(np.max(optimal_noise))
 		var_noise.append(np.std(optimal_noise))
+
+		mean_l0.append(np.mean(optimal_l0))
+		min_l0.append(np.min(optimal_l0))
+		max_l0.append(np.max(optimal_l0))
+		var_noise.append(np.std(optimal_l0))
+
+
+		mean_l1.append(np.mean(optimal_l1))
+		min_l1.append(np.min(optimal_l1))
+		max_l1.append(np.max(optimal_l1))
+		var_noise.append(np.std(optimal_l1))
 
 		correct_label = np.array(correct_label)
 		noise_label = np.array(noise_label)
@@ -106,9 +134,16 @@ for est in n_est:
 	var_noise = np.array(var_noise).reshape(-1,1)
 	min_noise = np.array(min_noise).reshape(-1,1)
 	max_noise = np.array(max_noise).reshape(-1,1)
+	mean_l0 = np.array(mean_l0).reshape(-1, 1)
+	min_l0 = np.array(min_l0).reshape(1, -1)
+	max_l0 = np.array(max_l0).reshape(1, -1)
+	var_l0 = np.array(var_l0).reshape(1, -1)
+	mean_l1 = np.array(mean_l1).reshape(-1, 1)
+	min_l1 = np.array(min_l0).reshape(-1, 1)
+	max_l1 = np.array(max_l1).reshape(-1, 1)
 	wrong_output = np.array(wrong_output).reshape(-1,1)
 
-	data = np.concatenate((mean_fitness, mean_noise, var_noise, min_noise, max_noise, wrong_output), axis = 1)
+	data = np.concatenate((mean_fitness, mean_noise, var_noise, min_noise, max_noise, wrong_output, mean_l0, min_l0, max_l0, var_l0, mean_l1, min_l1, max_l1, var_l1), axis = 1)
 	
 
 
@@ -177,6 +212,76 @@ for est in n_est:
 	plt.ylabel('Percentage misclassified')
 	plt_name = 'plot_misclassified' + str(est) + '.png'
 	plt.savefig(plt_name)
+
+	#L_0 norm
+	f7, ax7 = plt.subplots()
+	ax7.plot(epsilons, mean_l0)
+	plt.title('Mean Optimal L0 norm vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('Mean L0 norm')
+	plt_name = 'l0_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	f8, ax8 = plt.subplots()
+	ax8.plot(epsilons, min_l0)
+	plt.title('Min L0 norm vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('Min L0 norm')
+	plt_name = 'plot_min_l0_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	f9, ax9 = plt.subplots()
+	ax9.plot(epsilons, max_l0)
+	plt.title('Max L0 norm vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('Max L0 norm')
+	plt_name = 'plot_max_l0_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	f10, ax10 = plt.subplots()
+	ax10.plot(epsilons, mean_l0, 'k-')
+	ax10.fill_between(epsilons, list(np.ndarray.flatten(np.array(mean_l0) + np.array(var_l0))), list(np.ndarray.flatten(np.array(mean_l0) - np.array(var_l0))))
+	plt.title('L0 norm distribution vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('L0 norm')
+	plt_name = 'plot_distribution_l0_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	#L_1 norm
+	f11, ax11 = plt.subplots()
+	ax11.plot(epsilons, mean_l1)
+	plt.title('Mean Optimal L1 norm vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('Mean L1 norm')
+	plt_name = 'l1_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	f12, ax12 = plt.subplots()
+	ax8.plot(epsilons, min_l1, 'k-')
+	plt.title('Min L1 norm vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('Min L1 norm')
+	plt_name = 'plot_min_l1_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	f13, ax13 = plt.subplots()
+	ax13.plot(epsilons, max_l1)
+	plt.title('Max L1 norm vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('Max L1 norm')
+	plt_name = 'plot_max_l1_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+	f14, ax14 = plt.subplots()
+	ax14.plot(epsilons, mean_l1)
+	ax14.fill_between(epsilons, list(np.ndarray.flatten(np.array(mean_l1) + np.array(var_l1))), list(np.ndarray.flatten(np.array(mean_l1) - np.array(var_l1))))
+	plt.title('L1 norm distribution vs epsilon')
+	plt.xlabel('Epsilon')
+	plt.ylabel('L1 norm')
+	plt_name = 'plot_distribution_l1_' + str(est) + '.png'
+	plt.savefig(plt_name)
+
+
 
 accuracy = np.array(accuracy).reshape(-1,1)
 file = './accuracy.csv'
