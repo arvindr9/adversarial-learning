@@ -138,10 +138,11 @@ for est in n_est:
 	f3, ax3 = plt.subplots()
 	ax3.plot(epsilons, mean_noise)
 	ax3.fill_between(epsilons, list(np.ndarray.flatten(np.array(mean_noise) + np.array(var_noise))), list(np.ndarray.flatten(np.array(mean_noise) - np.array(var_noise))))
-	ax3.plot('Optimal noise distribution vs epsilon')
+	plt.title('Optimal noise distribution vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Optimal Noise Distribution')
 	plt_name = 'plot_distribution' + str(est) + '.png'
+	plt.savefig(plt_name)
 
 	#eventually change the above to be a graph that represents using all possible numbers of estimators.
 	
