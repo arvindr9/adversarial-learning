@@ -116,13 +116,13 @@ for est in n_est:
 		mean_l0.append(np.mean(optimal_l0))
 		min_l0.append(np.min(optimal_l0))
 		max_l0.append(np.max(optimal_l0))
-		var_noise.append(np.std(optimal_l0))
+		var_l0.append(np.std(optimal_l0))
 
 
 		mean_l1.append(np.mean(optimal_l1))
 		min_l1.append(np.min(optimal_l1))
 		max_l1.append(np.max(optimal_l1))
-		var_noise.append(np.std(optimal_l1))
+		var_l1.append(np.std(optimal_l1))
 
 		correct_label = np.array(correct_label)
 		noise_label = np.array(noise_label)
@@ -135,12 +135,13 @@ for est in n_est:
 	min_noise = np.array(min_noise).reshape(-1,1)
 	max_noise = np.array(max_noise).reshape(-1,1)
 	mean_l0 = np.array(mean_l0).reshape(-1, 1)
-	min_l0 = np.array(min_l0).reshape(1, -1)
-	max_l0 = np.array(max_l0).reshape(1, -1)
-	var_l0 = np.array(var_l0).reshape(1, -1)
+	min_l0 = np.array(min_l0).reshape(-1, 1)
+	max_l0 = np.array(max_l0).reshape(-1, 1)
+	var_l0 = np.array(var_l0).reshape(-1, 1)
 	mean_l1 = np.array(mean_l1).reshape(-1, 1)
-	min_l1 = np.array(min_l0).reshape(-1, 1)
+	min_l1 = np.array(min_l1).reshape(-1, 1)
 	max_l1 = np.array(max_l1).reshape(-1, 1)
+	var_l1 = np.array(var_l1).reshape(-1, 1)
 	wrong_output = np.array(wrong_output).reshape(-1,1)
 
 	data = np.concatenate((mean_fitness, mean_noise, var_noise, min_noise, max_noise, wrong_output, mean_l0, min_l0, max_l0, var_l0, mean_l1, min_l1, max_l1, var_l1), axis = 1)
@@ -171,7 +172,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 
 	f3, ax3 = plt.subplots()
-	ax3.plot(epsilons, mean_noise)
+	ax3.plot(epsilons, mean_noise, 'k-')
 	ax3.fill_between(epsilons, list(np.ndarray.flatten(np.array(mean_noise) + np.array(var_noise))), list(np.ndarray.flatten(np.array(mean_noise) - np.array(var_noise))))
 	plt.title('Optimal noise distribution vs epsilon')
 	plt.xlabel('Epsilon')
@@ -257,7 +258,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 
 	f12, ax12 = plt.subplots()
-	ax8.plot(epsilons, min_l1, 'k-')
+	ax12.plot(epsilons, min_l1)
 	plt.title('Min L1 norm vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Min L1 norm')
@@ -273,7 +274,7 @@ for est in n_est:
 	plt.savefig(plt_name)
 
 	f14, ax14 = plt.subplots()
-	ax14.plot(epsilons, mean_l1)
+	ax14.plot(epsilons, mean_l1, 'k-')
 	ax14.fill_between(epsilons, list(np.ndarray.flatten(np.array(mean_l1) + np.array(var_l1))), list(np.ndarray.flatten(np.array(mean_l1) - np.array(var_l1))))
 	plt.title('L1 norm distribution vs epsilon')
 	plt.xlabel('Epsilon')
