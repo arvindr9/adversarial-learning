@@ -50,7 +50,7 @@ for est in n_est:
 
 	x0 = [0]*784
 	#iterations = [100, 200, 500, 1000]
-	epsilons = [0.15, 0.2, 0.3, 0.5, 0.7, 1.0]
+	epsilons = [0.15]#, 0.2, 0.3, 0.5, 0.7, 1.0]
 
 	'''
 	TODO:
@@ -80,7 +80,7 @@ for est in n_est:
 			x0 = [0] * 784
 			print('Current Image: {}'.format(image_no))
 			cons = ({'type': 'ineq',
-					'fun': lambda noise: epsilon**2 - norm(np.array(noise))})
+					'fun': lambda noise: epsilon - norm(np.array(noise))})
 			minimizer_kwargs = dict(method = "slsqp", args = (image,clf), constraints = cons, options = {'maxiter': 100})
 			res = basinhopping(fitness_func, niter = 1, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			optimal_fitness.append(res['fun'])
@@ -135,9 +135,9 @@ for est in n_est:
 	plt_name = 'plot_noise' + str(est) + '.png'
 	plt.savefig(plt_name)
 
-	d3, ax3 = plt.subplots()
+	f3, ax3 = plt.subplots()
 	ax3.plot(epsilons, mean_noise)
-	ax3.fill_between(epsilons, mean_noise + var_noise, mean_noise - var_noise)
+	ax3.fill_between(epsilons, list(np.ndarray.flatten(np.array(mean_noise) + np.array(var_noise))), list(np.ndarray.flatten(np.array(mean_noise) - np.array(var_noise))))
 	ax3.plot('Optimal noise distribution vs epsilon')
 	plt.xlabel('Epsilon')
 	plt.ylabel('Optimal Noise Distribution')
