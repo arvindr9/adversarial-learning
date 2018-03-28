@@ -134,14 +134,24 @@ for est in n_est:
 	plt.ylabel('Mean Optimal noise')
 	plt_name = 'plot_noise' + str(est) + '.png'
 	plt.savefig(plt_name)
-	
-	f3, ax3 = plt.subplots()
-	ax3.plot(epsilons, var_noise)
-	plt.title('Noise std vs epsilon')
+
+	d3, ax3 = plt.subplots()
+	ax3.plot(epsilons, mean_noise)
+	ax3.fill_between(epsilons, mean_noise + var_noise, mean_noise - var_noise)
+	ax3.plot('Optimal noise distribution vs epsilon')
 	plt.xlabel('Epsilon')
-	plt.ylabel('Std deviation')
-	plt_name = 'plot_variance' + str(est) + '.png'
-	plt.savefig(plt_name)
+	plt.ylabel('Optimal Noise Distribution')
+	plt_name = 'plot_distribution' + str(est) + '.png'
+
+	#eventually change the above to be a graph that represents using all possible numbers of estimators.
+	
+	# f3, ax3 = plt.subplots()
+	# ax3.plot(epsilons, var_noise)
+	# plt.title('Noise std vs epsilon')
+	# plt.xlabel('Epsilon')
+	# plt.ylabel('Std deviation')
+	# plt_name = 'plot_variance' + str(est) + '.png'
+	# plt.savefig(plt_name)
 
 	f4, ax4 = plt.subplots()
 	ax4.plot(epsilons, min_noise)
