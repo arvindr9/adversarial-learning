@@ -1,6 +1,6 @@
 # adversarial-learning
 
-##Algorithm
+## Parameters for generation of adversarial examples
 
 * **Training size**: 50000 MNIST Images
 * **Classifier**: Random Forest Classifier
