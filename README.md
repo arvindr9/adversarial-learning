@@ -1,6 +1,6 @@
 # adversarial-learning
 
-A link to the results can be seen [here] (https://docs.google.com/presentation/d/1kHk7nZ4z5ZOcIFnNr7NYfRCe-lZL5VdOIFdNz4p8TP4/edit?usp=sharing)
+A link to the results can be seen [here](https://docs.google.com/presentation/d/1kHk7nZ4z5ZOcIFnNr7NYfRCe-lZL5VdOIFdNz4p8TP4/edit?usp=sharing)
 
 ## Parameters for generation of adversarial examples
 
