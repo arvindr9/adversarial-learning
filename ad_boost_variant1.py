@@ -191,7 +191,7 @@ class AdversarialBoost:
 			print "Generating adversarial examples for image number : %d\n" %image_no ,
 
 			minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': 100})
-			res = basinhopping(self.fitness_func, niter = 1, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+			res = basinhopping(self.fitness_func, niter = 10, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			optimal_fitness.append(res['fun'])
 			cur_noise = res['x']
 			
