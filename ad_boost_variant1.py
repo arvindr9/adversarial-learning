@@ -331,7 +331,7 @@ if(__name__ == '__main__'):
 
 	with open('boost_time.csv', "wb") as f:
 		writer = csv.writer(f)
-		writer.writerow(ab.boost_time)
+		writer.writerow(ab.boosting_time)
 
 
 
