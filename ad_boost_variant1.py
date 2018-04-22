@@ -9,6 +9,11 @@ from sklearn.base import clone
 from scipy.optimize import basinhopping
 from scipy.linalg import norm
 import time
+import cPickle
+
+def save_object(obj, filename):
+    with open(filename, 'wb') as output:  # Overwrites any existing file.
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
 
 
 class AdversarialBoost:
@@ -214,7 +219,7 @@ if(__name__ == '__main__'):
 
 	clf = 'rf'
 
-	estimator_params = {'n_estimators': 20, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
+	estimator_params = {'n_estimators': 2, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
 	#Loading Mnist data
 	# Load training and eval data
 	mnist = tf.contrib.learn.datasets.load_dataset("mnist")
@@ -234,20 +239,21 @@ if(__name__ == '__main__'):
 	eval_labels_ss = eval_labels[rand_idx]
 
 	#Training parameters
-	no_boosting_clf = 100
+	no_boosting_clf = 10
 	epsilon_train = 0.3
-	n_advimages = 100
+	n_advimages = 10
 	n_boost_random_train_samples =  100
 
 	#Testing parameters
 	n_test_adv_images = 200
-	epsilon_test_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+	epsilon_test_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 	#Adversarial Training
 
 	print "\n\n Training Random forest with adversarial images"
 
 	ab = AdversarialBoost(RandomForestClassifier(), no_boosting_clf, epsilon_train, n_advimages, n_boost_random_train_samples, estimator_params = estimator_params)
 	ab.fit(train_data_ss, train_labels_ss)
+	save_object(ab, 'ab_' + str(no_boosting_clf) + '.pkl')
 
 
 
