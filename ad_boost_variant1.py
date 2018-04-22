@@ -219,7 +219,7 @@ if(__name__ == '__main__'):
 
 	clf = 'rf'
 
-	estimator_params = {'n_estimators': 2, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
+	estimator_params = {'n_estimators': 20, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
 	#Loading Mnist data
 	# Load training and eval data
 	mnist = tf.contrib.learn.datasets.load_dataset("mnist")
@@ -239,9 +239,9 @@ if(__name__ == '__main__'):
 	eval_labels_ss = eval_labels[rand_idx]
 
 	#Training parameters
-	no_boosting_clf = 10
+	no_boosting_clf = 100
 	epsilon_train = 0.3
-	n_advimages = 10
+	n_advimages = 100
 	n_boost_random_train_samples =  100
 
 	#Testing parameters
