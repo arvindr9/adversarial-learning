@@ -13,7 +13,7 @@ import cPickle
 
 def save_object(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
-        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
+        cPickle.dump(obj, output, cPickle.HIGHEST_PROTOCOL)
 
 
 class AdversarialBoost:
@@ -36,15 +36,17 @@ class AdversarialBoost:
 	def __init__(self, base_estimator, n_estimators, epsilon, n_adv, n_boost_random_train_samples, estimator_params = None):
 
 
-		self.base_estimator = base_estimator
-		self.n_estimators = n_estimators
-		self.estimators_ = []
-		self.estimator_errors_ = np.ones(n_estimators, dtype= np.float64)
-		self.epsilon = epsilon
-		self.n_adv = n_adv
-		self.n_boost_random_train_samples = n_boost_random_train_samples
-		self.estimator_params = estimator_params
-		self.boosting_time = []
+                self.base_estimator = base_estimator
+                self.n_estimators = n_estimators
+                self.estimators_ = []
+                self.estimator_errors_ = np.ones(n_estimators, dtype= np.float64)
+                self.epsilon = epsilon
+                self.n_adv = n_adv
+                self.n_boost_random_train_samples = n_boost_random_train_samples
+                self.estimator_params = estimator_params
+                self.boosting_time = []
+                self.training_time = []
+
 
 		if(isinstance(self.base_estimator, SVC)):
 				
@@ -117,7 +119,11 @@ class AdversarialBoost:
 
 
 		# estimator.fit(X, y, sample_weight=sample_weight)
-		estimator.fit(X,y)
+                train_start = time.time()
+                estimator.fit(X,y)
+                train_end = time.time()
+                self.training_time.append(train_end - train_start)
+
 
 		self.estimators_.append(estimator)
 
@@ -219,7 +225,7 @@ if(__name__ == '__main__'):
 
 	clf = 'rf'
 
-	estimator_params = {'n_estimators': 2, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
+	estimator_params = {'n_estimators': 20, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
 	#Loading Mnist data
 	# Load training and eval data
 	mnist = tf.contrib.learn.datasets.load_dataset("mnist")
@@ -239,9 +245,9 @@ if(__name__ == '__main__'):
 	eval_labels_ss = eval_labels[rand_idx]
 
 	#Training parameters
-	no_boosting_clf = 10
+	no_boosting_clf = 100
 	epsilon_train = 0.3
-	n_advimages = 10
+	n_advimages = 100
 	n_boost_random_train_samples =  100
 
 	#Testing parameters
@@ -254,6 +260,12 @@ if(__name__ == '__main__'):
 	ab = AdversarialBoost(RandomForestClassifier(), no_boosting_clf, epsilon_train, n_advimages, n_boost_random_train_samples, estimator_params = estimator_params)
 	ab.fit(train_data_ss, train_labels_ss)
 	save_object(ab, 'ab_' + str(no_boosting_clf) + '.pkl')
+	with open('boosting_time.csv', "wb") as f:
+		writer = csv.writer(f)
+		writer.writerow(ab.boosting_time)
+	with open('training_time.csv', "wb") as f:
+		writer = csv.writer(f)
+		writer.writerow(ab.training_time)
 
 
 
@@ -335,9 +347,7 @@ if(__name__ == '__main__'):
 		writer  = csv.writer(f)
 		writer.writerow(ab.estimator_errors_)
 
-	with open('boost_time.csv', "wb") as f:
-		writer = csv.writer(f)
-		writer.writerow(ab.boosting_time)
+
 
 
 
