@@ -78,7 +78,7 @@ eval_data_ss = eval_data[rand_idx]
 eval_labels_ss = eval_labels[rand_idx]
 
 
-n_est = [1, 2, 3, 5, 10]
+n_est = [1, 5, 10, 20, 50, 100]
 accuracy = []
 for est in n_est:
 
@@ -94,7 +94,7 @@ for est in n_est:
     x0 = [0]*patch_size*patch_size
     # iterations = [100, 200, 500, 1000]
     # epsilons = [0.01, 0.05, 0.1, 0.3, 0.5, 0.8, 1.0]
-    epsilons = [0.1, 0.2, 0.3, 0.5, 0.8, 1.0]
+    epsilons = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0]
 
 
     '''
@@ -146,9 +146,9 @@ for est in n_est:
             for row in range(0, 25):
                 for col in range(0, 25):
                     minimizer_kwargs = dict(method = "slsqp", args = (image, clf, image_no, row, col, patch_size), constraints = cons)
-                    curr_res = basinhopping(fitness_func, niter = 10, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+                    curr_res = basinhopping(fitness_func, niter = 1, x0 = x0, minimizer_kwargs = minimizer_kwargs)
                     curr_fitness = curr_res['fun']
-                    print(f"current fitness: {curr_fitness}")
+                    #print(f"current fitness: {curr_fitness}")
                     if curr_fitness <= min_fitness:
                         min_fitness = curr_fitness
                         res = curr_res
