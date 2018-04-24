@@ -54,7 +54,7 @@ def add_patch_to_image(image, patch, patch_size, patch_start_row, patch_start_co
 def fitness_func(noise, x, clf, image_no, random_start_row, random_start_col, patch_size):
 
 	x = np.array(x).reshape(1,-1)
-	patch_image = add_patch_to_image(x, noise, patch_size, random_start_row[image_no], random_start_col[image_no])
+	patch_image = add_patch_to_image(x, noise, patch_size, random_start_row, random_start_col)
 	return -1*norm(clf.predict_proba(x) - clf.predict_proba(patch_image))
 
 
@@ -141,15 +141,19 @@ for est in n_est:
             cons = ({'type': 'ineq','fun': lambda noise: epsilon - norm(np.array(noise))})
             min_fitness = 0
             res = None
+            row_opt = None
+            col_opt = None
             for row in range(0, 25):
                 for col in range(0, 25):
-                    minimizer_kwargs = dict(method = "slsqp", args = (image,clf, image_no, row, col, patch_size), constraints = cons)
+                    minimizer_kwargs = dict(method = "slsqp", args = (image, clf, image_no, row, col, patch_size), constraints = cons)
                     curr_res = basinhopping(fitness_func, niter = 10, x0 = x0, minimizer_kwargs = minimizer_kwargs)
                     curr_fitness = curr_res['fun']
                     print(f"current fitness: {curr_fitness}")
                     if curr_fitness <= min_fitness:
                         min_fitness = curr_fitness
                         res = curr_res
+                        row_opt = row
+                        col_opt = col
             optimal_fitness.append(res['fun'])
             noise_norm = norm(res['x'])
             l0_norm = norm(res['x'], ord = 0)
@@ -161,7 +165,7 @@ for est in n_est:
 
             #print(f"noise norm: {noise_norm}")
             correct_label.append(clf.predict(image.reshape(1,-1))[0])
-            patch_image = add_patch_to_image(image, res['x'], patch_size, random_start_row[image_no], random_start_col[image_no])
+            patch_image = add_patch_to_image(image, res['x'], patch_size, row_opt, col_opt)
             noise_label.append(clf.predict((patch_image).reshape(1,-1))[0])
 
 
