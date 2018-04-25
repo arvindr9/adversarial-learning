@@ -78,7 +78,7 @@ eval_data_ss = eval_data[rand_idx]
 eval_labels_ss = eval_labels[rand_idx]
 
 
-n_est = [1, 5, 10, 20, 50, 100]
+n_est = [1, 5, 10, 50, 100]
 accuracy = []
 for est in n_est:
 
@@ -143,8 +143,14 @@ for est in n_est:
             res = None
             row_opt = None
             col_opt = None
+            i = -1
+            j = -1
             for row in range(0, 25):
+                i += 1
                 for col in range(0, 25):
+                    j += 1
+                    if row % patch_size != 0 or col % patch_size != 0:
+                        continue
                     minimizer_kwargs = dict(method = "slsqp", args = (image, clf, image_no, row, col, patch_size), constraints = cons)
                     curr_res = basinhopping(fitness_func, niter = 1, x0 = x0, minimizer_kwargs = minimizer_kwargs)
                     curr_fitness = curr_res['fun']
@@ -182,7 +188,7 @@ for est in n_est:
                 plt.imshow(patch_image.reshape([28, 28]), cmap=plt.get_cmap('gray_r'))
                 fig.add_subplot(1, 3, 3)
                 plt.imshow(np.array(res['x']).reshape([3, 3]), cmap=plt.get_cmap('gray_r'))
-                plt_name = f'one_iter/est{est}_epsilon{epsilon}_image{image_no}.png'
+                plt_name = f'one_iter_faster/est{est}_epsilon{epsilon}_image{image_no}.png'
                 plt.savefig(plt_name)
 
 
@@ -228,7 +234,7 @@ for est in n_est:
 
 
     #Writing data to file
-    file = 'one_iter/data' + str(est) + '.csv'
+    file = 'one_iter_faster/data' + str(est) + '.csv'
     with open(file, 'w', newline = '') as output:
         writer = csv.writer(output, delimiter=',')
         writer.writerows(data)
@@ -239,7 +245,7 @@ for est in n_est:
     plt.title('Mean Optimal fitness vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Mean Optimal fitness values')
-    plt_name=  'one_iter/plot_fitness'+str(est) +'.png'
+    plt_name=  'one_iter_faster/plot_fitness'+str(est) +'.png'
     plt.savefig(plt_name)
 
     f2, ax2 = plt.subplots()
@@ -247,7 +253,7 @@ for est in n_est:
     plt.title('Mean Optimal noise vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Mean Optimal noise')
-    plt_name = 'one_iter/plot_noise' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_noise' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f3, ax3 = plt.subplots()
@@ -256,7 +262,7 @@ for est in n_est:
     plt.title('Optimal noise distribution vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Optimal Noise Distribution')
-    plt_name = 'one_iter/plot_distribution' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_distribution' + str(est) + '.png'
     plt.savefig(plt_name)
 
     #eventually change the above to be a graph that represents using all possible numbers of estimators.
@@ -274,7 +280,7 @@ for est in n_est:
     plt.title('Min noise vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Min Noise')
-    plt_name = 'one_iter/plot_min' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_min' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f5, ax5 = plt.subplots()
@@ -282,7 +288,7 @@ for est in n_est:
     plt.title('Max noise vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Max Noise')
-    plt_name = 'one_iter/plot_max' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_max' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f6, ax6 = plt.subplots()
@@ -290,7 +296,7 @@ for est in n_est:
     plt.title('Percentage misclassified vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Percentage misclassified')
-    plt_name = 'one_iter/plot_misclassified' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_misclassified' + str(est) + '.png'
     plt.savefig(plt_name)
 
     #L_0 norm
@@ -299,7 +305,7 @@ for est in n_est:
     plt.title('Mean Optimal L0 norm vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Mean L0 norm')
-    plt_name = 'one_iter/l0_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/l0_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f8, ax8 = plt.subplots()
@@ -307,7 +313,7 @@ for est in n_est:
     plt.title('Min L0 norm vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Min L0 norm')
-    plt_name = 'one_iter/plot_min_l0_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_min_l0_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f9, ax9 = plt.subplots()
@@ -315,7 +321,7 @@ for est in n_est:
     plt.title('Max L0 norm vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Max L0 norm')
-    plt_name = 'one_iter/plot_max_l0_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_max_l0_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f10, ax10 = plt.subplots()
@@ -324,7 +330,7 @@ for est in n_est:
     plt.title('L0 norm distribution vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('L0 norm')
-    plt_name = 'one_iter/plot_distribution_l0_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_distribution_l0_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     #L_1 norm
@@ -333,7 +339,7 @@ for est in n_est:
     plt.title('Mean Optimal L1 norm vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Mean L1 norm')
-    plt_name = 'one_iter/l1_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/l1_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f12, ax12 = plt.subplots()
@@ -341,7 +347,7 @@ for est in n_est:
     plt.title('Min L1 norm vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Min L1 norm')
-    plt_name = 'one_iter/plot_min_l1_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_min_l1_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f13, ax13 = plt.subplots()
@@ -349,7 +355,7 @@ for est in n_est:
     plt.title('Max L1 norm vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('Max L1 norm')
-    plt_name = 'one_iter/plot_max_l1_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_max_l1_' + str(est) + '.png'
     plt.savefig(plt_name)
 
     f14, ax14 = plt.subplots()
@@ -358,13 +364,13 @@ for est in n_est:
     plt.title('L1 norm distribution vs epsilon')
     plt.xlabel('Epsilon')
     plt.ylabel('L1 norm')
-    plt_name = 'one_iter/plot_distribution_l1_' + str(est) + '.png'
+    plt_name = 'one_iter_faster/plot_distribution_l1_' + str(est) + '.png'
     plt.savefig(plt_name)
 
 
 
 accuracy = np.array(accuracy).reshape(-1,1)
-file = 'one_iter/accuracy.csv'
+file = 'one_iter_faster/accuracy.csv'
 with open(file, 'w', newline = '') as output:
 	writer = csv.writer(output, delimiter=',')
 	writer.writerows(accuracy)
