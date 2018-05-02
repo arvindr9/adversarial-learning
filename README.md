@@ -15,6 +15,7 @@ A link to the results can be seen [here](https://docs.google.com/presentation/d/
   * Splitting criteria: entropy
   * Max depth: 10
   * Number of estimators: varying (1, 2, 3, 5, 10). Note: Larger numbers of estimators will eventually be tested.
+  * Epsilon: 0.1, 0.2, 0.3, 0.5, 0.8, 1.0
 * **Optimization algorithm**: Basinhopping (10 iterations)
 * **Optimization parameters**:
   * Method: SQSLP (100 iterations by default)
@@ -22,3 +23,15 @@ A link to the results can be seen [here](https://docs.google.com/presentation/d/
   * Initial noise: [0] * 784
   * Iterations: 100
 * **Number of images**: 100
+
+## Parameters for adversarial patching
+
+* **Training size**: 50000 MNIST Images
+* **Classifier**: Random Forest Classifier
+* **Hyperparameters**:
+  * Splitting criteria: entropy
+  * Max depth: 10
+  * Number of estimators: varying (1, 2, 3, 5, 10, 20, 50, 100)
+  * Epsilon: 0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.2
+
+## Parameters f
