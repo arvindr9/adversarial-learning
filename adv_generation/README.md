@@ -6,6 +6,7 @@ Included in this folder are the files for generating adversarial examples.
 
 * **adRandom.py** Script for generating adversarial examples
 * **combineGraphs.py** Script for combining graphs
+* **serial** Contains non-parallel version of adRandom
 
 ## Data
 

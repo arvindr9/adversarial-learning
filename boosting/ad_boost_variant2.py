@@ -252,7 +252,7 @@ if(__name__ == '__main__'):
 
 	clf = 'rf'
 
-	estimator_params = {'n_estimators': 20, 'criterion': 'entropy', 'max_depth': 10, 'min_samples_split': 5}
+	estimator_params = {'n_estimators': 75, 'criterion': 'entropy', 'max_depth': 5, 'min_samples_split': 5}
 	#Loading Mnist data
 	# Load training and eval data
 	mnist = tf.contrib.learn.datasets.load_dataset("mnist")
@@ -262,7 +262,7 @@ if(__name__ == '__main__'):
 	eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
 	#Subsampling the training dataset
-	rand_idx = np.random.randint(0,len(train_data), (500,))
+	rand_idx = np.random.randint(0,len(train_data), (1000,))
 	train_data_ss = train_data[rand_idx]
 	train_labels_ss = train_labels[rand_idx]
 
@@ -272,10 +272,11 @@ if(__name__ == '__main__'):
 	eval_labels_ss = eval_labels[rand_idx]
 
 	#Training parameters
-	no_boosting_clf = 100
+	no_boosting_clf = 10
 	epsilon_train = 0.3
 	n_advimages = 100
 	n_boost_random_train_samples =  100
+
 
 	#Testing parameters
 	n_test_adv_images = 200
@@ -288,7 +289,7 @@ if(__name__ == '__main__'):
 	ab.fit(train_data_ss, train_labels_ss)
 
 	#Saving the random forest to a pkl file
-	save_object(ab, 'ab_' + str(no_boosting_clf) + '.pkl')
+	save_object(ab, 'ab_' + str(estimator_params['n_estimators']) + '.pkl')
 
 	#Saving the data for time benchmarks
 		# 	self.total_boosting_time = [] #Total time for each boosting step
@@ -296,31 +297,31 @@ if(__name__ == '__main__'):
 		# self.adv_generation_time = [] #Total time for generating all the adversarial images in each step
 		# self.concatenate_time = [] #Time for concatenating images
 		# self.per_image_advGen_time
-	with open('total_boosting_time_' + str(no_boosting_clf) + 'clf.csv', "wb") as f:
-		writer = csv.writer(f)
-		writer.writerow(ab.total_boosting_time)
-	with open('fitting_time_' + str(no_boosting_clf) + 'clf.csv', "wb") as f:
-		writer = csv.writer(f)
-		writer.writerow(ab.fitting_time)
-	with open('adv_generation_time_' + str(no_boosting_clf) + 'clf.csv', "wb") as f:
-		writer = csv.writer(f)
-		writer.writerow(ab.adv_generation_time)
-	with open('concatenate_time_' + str(no_boosting_clf) + 'clf.csv', "wb") as f:
-		writer = csv.writer(f)
-		writer.writerow(ab.concatenate_time)
-	with open('per_image_advGen_time_' + str(no_boosting_clf) + 'clf.csv', "wb") as f:
-		writer = csv.writer(f)
-		writer.writerow(ab.per_image_advGen_time)
+	# with open('boosting_time_' + str(estimator_params['n_estimators']) + '.csv', "wb") as f:
+	# 	writer = csv.writer(f)
+	# 	writer.writerow(ab.total_boosting_time)
+	# with open('fitting_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
+	# 	writer = csv.writer(f)
+	# 	writer.writerow(ab.fitting_time)
+	# with open('adv_generation_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
+	# 	writer = csv.writer(f)
+	# 	writer.writerow(ab.adv_generation_time)
+	# with open('concatenate_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
+	# 	writer = csv.writer(f)
+	# 	writer.writerow(ab.concatenate_time)
+	# with open('per_image_advGen_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
+	# 	writer = csv.writer(f)
+	# 	writer.writerow(ab.per_image_advGen_time)
 		
 
 
 
-	estimators_list = ab.estimators_
+	# estimators_list = ab.estimators_
 
 	#Generating adversarial images for best estimator (that last estimator) and calculating accuracy
 
 
-	print "\n\n Calculating accuracies on test adversarial images"
+	# print "\n\n Calculating accuracies on test adversarial images"
 
 	
 	# for index, est in enumerate(estimators_list):
@@ -339,59 +340,59 @@ if(__name__ == '__main__'):
 
 	# 	accuracy.append(cur_est_acc)
 
-	accuracy = []
+	# accuracy = []
 	
-	print "\n\n For last estimator"
+	# print "\n\n For last estimator"
 
-	cur_est_acc = []
+	# cur_est_acc = []
 
-	est = estimators_list[-1]
+	# est = estimators_list[-1]
 
-	for epsilon_test in epsilon_test_list:
+	# for epsilon_test in epsilon_test_list:
 
-		#Generating some adversarial examples
+	# 	#Generating some adversarial examples
 
-		print "\n current epsilon %f" %epsilon_test
+	# 	print "\n current epsilon %f" %epsilon_test
 
-		adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
-		cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
+	# 	adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
+	# 	cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
   
-	accuracy.append(cur_est_acc)
+	# accuracy.append(cur_est_acc)
 
-	print "\n\n For the first estimator"
+	# print "\n\n For the first estimator"
 
-	cur_est_acc = []
+	# cur_est_acc = []
 
-	est = estimators_list[0]
+	# est = estimators_list[0]
 
-	for epsilon_test in epsilon_test_list:
+	# for epsilon_test in epsilon_test_list:
 
-		#Generating some adversarial examples
+	# 	#Generating some adversarial examples
 
-		print "\n current epsilon %f" %epsilon_test
+	# 	print "\n current epsilon %f" %epsilon_test
 
-		adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
-		cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
+	# 	adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
+	# 	cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
   
-	accuracy.append(cur_est_acc)
+	# accuracy.append(cur_est_acc)
 
 
-	#Writing the accuracies to a csv file
+	# #Writing the accuracies to a csv file
 
-	print "\n\n\n Printing the accuracy 2 d array if file is not saved "
-	print(accuracy)
+	# print "\n\n\n Printing the accuracy 2 d array if file is not saved "
+	# print(accuracy)
 
 
-	print "\n\n\n Printing the estimator error list if file is not saved "
-	print(ab.estimator_errors_)
+	# print "\n\n\n Printing the estimator error list if file is not saved "
+	# print(ab.estimator_errors_)
 
-	with open("accuracy.csv", "wb") as f:
-	    writer = csv.writer(f)
-	    writer.writerows(accuracy)
+	# with open("accuracy.csv", "wb") as f:
+	#     writer = csv.writer(f)
+	#     writer.writerows(accuracy)
 
-	with open('est_error.csv', "wb") as f:
-		writer  = csv.writer(f)
-		writer.writerow(ab.estimator_errors_)
+	# with open('est_error.csv', "wb") as f:
+	# 	writer  = csv.writer(f)
+	# 	writer.writerow(ab.estimator_errors_)
 
 
 

@@ -11,13 +11,7 @@ from sklearn.decomposition import PCA
 from scipy.optimize import basinhopping
 import csv
 from sklearn.metrics import accuracy_score
-from joblib import Parallel, delayed
 
-'''
-TODO:
-Increase number of testing samples for finding accuracy (let's say 1000-5000)
-Parallelize for the estimator and eps values
-'''
 
 #Loading Mnist data
 # Load training and eval data
