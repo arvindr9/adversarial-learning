@@ -19,6 +19,7 @@ Increase number of testing samples for finding accuracy (let's say 1000-5000)
 Parallelize for the estimator and eps values
 '''
 
+
 #Loading Mnist data
 # Load training and eval data
 mnist = tf.contrib.learn.datasets.load_dataset("mnist")
@@ -34,7 +35,7 @@ train_labels_ss = train_labels[rand_idx]
 
 
 #Subsampling the testing dataset
-rand_idx = np.random.randint(0,len(eval_data), (500,))
+rand_idx = np.random.randint(0,len(eval_data), (5000,))
 eval_data_ss = eval_data[rand_idx]
 eval_labels_ss = eval_labels[rand_idx]
 
@@ -43,18 +44,36 @@ def fitness_func(noise, x, clf):
 	x = np.array(x).reshape(1,-1)
 	return -1*norm(clf.predict_proba(x) - clf.predict_proba(x+noise))
 
-n_est = [1, 2, 3, 5, 10]
+n_est = [1, 2, 3, 5]#, 10]
 accuracy = []
+
+'''
+Want to train each classifier only once
+pretrain classifiers
+results = {}
+results['2_est'].mean_fitness, etc...
+'''
+clfs = {}
 for est in n_est:
-
-	# Training Random forest classifier and predicting
-	print('Training Random Forest with no of estimators: {}'.format(est))
-
-	clf = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
+	clfs[str(est)] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
+	clf = clfs[str(est)]
 	clf.fit(train_data_ss, train_labels_ss)
 	accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
+	print("score: {}".format(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))))
 
-	print(f"score: {accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))}")
+def advGen(est):
+
+	# Training Random forest classifier and predicting
+	# print('Training Random Forest with no of estimators: {}'.format(est))
+
+	# clf = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
+	# print('Created classifier')
+	# clf.fit(train_data_ss, train_labels_ss)
+	# print('Trained classifier')
+	# accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
+
+	# print(f"score: {accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))}")
+	clf = clfs[str(est)]
 
 	x0 = [0]*784
 	#iterations = [100, 200, 500, 1000]
@@ -63,9 +82,6 @@ for est in n_est:
 
 
 	'''
-	TODO:
-	Plot:
-	Single plot for data from multiple estimators
 	CSV File contains:
 	0. mean_fitness
 	1. mean_noise
@@ -87,7 +103,7 @@ for est in n_est:
 	min_l1 = []
 	max_l1 = []
 	var_l1 = []
-	print(f"noise norm: {norm(x0)}")
+	print("noise norm: {}".format(norm(x0)))
 
 	print('Starting the optimization')
 	for epsilon in epsilons:
@@ -101,7 +117,7 @@ for est in n_est:
 
 
 		print('Current Epsilon: {}'.format(epsilon))
-		for image_no, image in enumerate(eval_data_ss[1:100,:]):
+		for image_no, image in enumerate(eval_data_ss[1:100,:]): #change to 1000 or something
 			x0 = [0] * 784
 			print('Current Image: {}'.format(image_no))
 			cons = ({'type': 'ineq',
@@ -116,23 +132,23 @@ for est in n_est:
 			optimal_noise.append(noise_norm)
 			optimal_l0.append(l0_norm)
 			optimal_l1.append(l1_norm)
-			#print(f"noise norm: {noise_norm}")
+			print(f"noise norm: {noise_norm}")
 			correct_label.append(clf.predict(image.reshape(1,-1))[0])
 			noise_label.append(clf.predict((image+res['x']).reshape(1,-1))[0])
 			if correct_label[-1] != noise_label[-1]:
 				fig = plt.figure()
 				rows = 1
 				columns = 3
-				fig.text(0.15, 0.05, f"original label: {correct_label[-1]}")
-				fig.text(0.4, 0.05, f"adversarial label: {noise_label[-1]}")
-				fig.text(0.275, 0.15, f"real class: {eval_labels_ss[1:100][image_no]}")
+				fig.text(0.15, 0.05, "original label: {}".format(correct_label[-1]))
+				fig.text(0.4, 0.05, "adversarial label: {}".format(noise_label[-1]))
+				fig.text(0.275, 0.15, "real class: {}".format(eval_labels_ss[1:100][image_no]))
 				fig.add_subplot(1, 3, 1)
 				plt.imshow(image.reshape([28,28]), cmap=plt.get_cmap('gray_r'))
 				fig.add_subplot(1, 3, 2)
 				plt.imshow((image + res['x']).reshape([28, 28]), cmap=plt.get_cmap('gray_r'))
 				fig.add_subplot(1, 3, 3)
 				plt.imshow(np.array(res['x']).reshape([28, 28]), cmap=plt.get_cmap('gray_r'))
-				plt_name = f'one_iter/est{est}_epsilon{epsilon}_image{image_no}.png'
+				plt_name = 'one_iter/est' + str(est) + '_epsilon' + str(epsilon) + '_image' + str(image_no) + '.png'
 				plt.savefig(plt_name)
 
 
@@ -320,6 +336,14 @@ with open(file, 'w', newline = '') as output:
 	writer.writerows(accuracy)
 
 print(accuracy)
+
+if __name__ == '__main__':
+	print('hi')
+	Parallel(n_jobs=2)(delayed(advGen)(est) for est in n_est)
+
+
+
+
 # plt.subplot(121)
 # plt.imshow(image.reshape(28,28))
 # plt.title('Classified label without noise = %d'%(clf.predict(image.reshape(1,-1))))
