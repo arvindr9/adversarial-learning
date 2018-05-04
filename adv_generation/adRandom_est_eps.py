@@ -102,7 +102,7 @@ def advGen(est, epsilon):
 
 
 	print('Current Estimator: {}, Current Epsilon: {}'.format(est, epsilon))
-	for image_no, image in enumerate(eval_data_ss[1:n_adv_images,:]):
+	for image_no, image in enumerate(eval_data_ss[1:101,:]):
 		x0 = [0] * 784
 		print('Current Image: {}'.format(image_no))
 		cons = ({'type': 'ineq',
@@ -126,7 +126,7 @@ def advGen(est, epsilon):
 		    columns = 3
 		    fig.text(0.15, 0.05, "original label: {}".format(correct_label[-1]))
 		    fig.text(0.4, 0.05, "adversarial label: {}".format(noise_label[-1]))
-		    fig.text(0.275, 0.15, "real class: {}".format(eval_labels_ss[1:n_adv_images][image_no]))
+		    fig.text(0.275, 0.15, "real class: {}".format(eval_labels_ss[1:101][image_no]))
 		    fig.add_subplot(1, 3, 1)
 		    plt.imshow(image.reshape([28,28]), cmap=plt.get_cmap('gray_r'))
 		    fig.add_subplot(1, 3, 2)
@@ -207,5 +207,6 @@ if __name__ == '__main__':
 # def add_noise(x):
 
 	
+
 
 
