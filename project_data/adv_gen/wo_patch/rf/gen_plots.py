@@ -1,39 +1,49 @@
+import csv
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import genfromtxt
-import csv
-import pickle
 
-n_est = [1, 2, 5, 10, 20, 50, 100]
+n_est = [1, 2, 5, 10, 20, 50]
 
-epsilons = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1]
+epsilons = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-image_vecs = {}
-noise_vecs = {}
-correct_labels = {}
-accuracies = {}
+n_images = 400
 
-clfs = None
+accuracies = genfromtxt("processed_data/accuracy.csv", delimiter = ',')
+fitnesses = genfromtxt("processed_data/fitness.csv", delimiter = ',')
+std_fitnesses = genfromtxt("processed_data/std_fitness.csv", delimiter = ',')
 
-with open("raw_data/clfs.pkl") as f:
-    clfs = pickle.load(f)
+colors = ['r-', 'b-', 'g-', 'y-', 'p-', 'k-', 'bo-', 'c-']
 
+f1, ax1 = plt.subplots()
+mean_fitness = []
+for i in range(len(n_est)):
+    data = [round(float(f), 3) for f in fitnesses[i]]
+    mean_fitness.append(epsilons)
+    mean_fitness.append(data)
+    mean_fitness.append(colors[i])
+ax1.plot(*mean_fitness)
+plt.legend([f"Estimators: {est}" for est in n_est])
+plt.title('Mean Optimal fitness vs epsilon')
+plt.xlabel('Epsilon')
+plt.ylabel('Probability perturbation (L2 norm)')
+plt_name=  'plots/plot_fitness.png'
+plt.savefig(plt_name)
 
-for est in n_est:
-    for eps in epsilons:
-        clf = clfs[str(est)]
-        noises = genfromtxt("raw_data/noise/est_{}eps_{}".format(est, eps))
-        images = genfromtxt("raw_data/images/est_{}eps_{}".format(est, eps))
-        true_labels = genfromtxt("raw_data/correct_labels/est_{}eps_{}".format(est, eps))
-        noise_vecs["{}_{}".format(est, eps)] = noises
-        image_vecs["{}_{}".format(est, eps)] = images
-        correct_labels["{}_{}".format(est, eps)] = true_labels
-        non_adv_pred = clf.predict(images)
-        adv_pred = clf.predict(images + noises)
-        no_images = images.shape[0]
-        accuracy = clf.accuracy_score(correct_labels, adv_pred)
-        accuracies["{}_{}".format(est, eps)] = accuracy
-        
-        
-
+f2, ax2 = plt.subplots()
+accuracy_vec = []
+for i in range(len(n_est)):
+    data = [round(float(f), 3) for f in accuracies[i]]
+    accuracy_vec.append(epsilons)
+    accuracy_vec.append(data)
+    accuracy_vec.append(colors[i])
+ax2.plot(*accuracy_vec)
+plt.legend([f"Estimators: {est}" for est in n_est])
+plt.title('Accuracy vs epsilon')
+plt.xlabel('Epsilon')
+plt.ylabel('Accuracy')
+plt_name=  'plots/accuracy.png'
+plt.savefig(plt_name)
 
