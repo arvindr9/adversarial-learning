@@ -12,6 +12,8 @@ import csv
 from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
 import cPickle
+import argparse
+
 
 
 #Loading MNIST data

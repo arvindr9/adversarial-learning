@@ -12,7 +12,7 @@ import csv
 from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
 import cPickle
-
+import argparse
 
 #Loading MNIST data
 # Load training and eval data
@@ -33,20 +33,6 @@ rand_idx = np.random.randint(0,len(eval_data), (5000,))
 eval_data_ss = eval_data[rand_idx]
 eval_labels_ss = eval_labels[rand_idx]
 
-
-#Global variables
-#Base estimator parameters
-base_estimator = RandomForestClassifier()
-base_classifier_params = {'n_estimators' = 20,
-						  'criterion' = 'entropy',
-						  'max_depth' = 10}
-
-#No iterative Optimization parameters
-epsilon = 0.5
-no_adv_images = 20
-
-#Data path
-heat_map_path = '/home/sagarwal311/Adversarial-Learning/heatmap'
 
 #Pretraining the classifier
 clf, _ = pre_training(base_classifier = RandomForestClassifier(), base_classifier_params = base_classifier_params)
@@ -165,7 +151,50 @@ def adv_gen_and_save(in_iter, out_iter):
 	write_image_noise_labels_to_file(in_iter, out_iter)
 
 
-if __name__ == '__main__':
+def main():
+
+	
+	parser = argparse.ArgumentParser()
+    parser.add_argument("--heat_map_path", default="/home/sagarwal311/Adversarial-Learning/heatmap", help="where all the data and files related to heat map gen are stored")
+    parser.add_argument("--base_estimator", default="random_forest", help="base estimator {'random_forest'}")
+    parser.add_argument("--n_estimators", default=20, help ="no. of estimators in base estimators", type =int)
+    parser.add_argument("--criterion", default='entropy', help ="criterion for base estimator")
+    parser.add_argument("--max_depth", default=10, help = "maximum depth for base estimator", type = int)
+    parser.add_argument("--epsilon", default =0.5, help = "epsilon value for optimization", type = int)
+    parser.add_argument("--no_adv_images", default=50, help = "number of adversarial to be generated for optimization", type = int)
+
+    args = parser.parse_args()
+    arguments = args.__dict__
+
+    #Make a dictionary of all arguments
+    args_dict = {k: v for k,v in arguments.items()}
+
+    #Declaring all the variables global
+    global heat_map_path
+    global base_estimator
+    global n_estimators
+    global criterion
+    global max_depth
+    global epsilon
+    global no_adv_images
+    global base_estimator_params
+
+    heat_map_path = args_dict['heat_map_path']
+    base_estimator = args_dict['base_estimator']
+    n_estimators = args_dict['n_estimators']
+    criterion = args_dict['criterion']
+    max_depth = args_dict['max_depth']
+    epsilon = args_dict['epsilon']
+    no_adv_images = args_dict['no_adv_images']
+
+    
+    if(base_estimator == "random_forest"):
+    	base_estimator = RandomForestClassifier()
+
+    base_classifier_params = {'n_estimators' = n_estimators,
+						  'criterion' = criterion,
+						  'max_depth' = max_depth}
+
 
 	inner_iter = [5, 10, 20, 50, 100]
 	outer_iter = [1, 2, 5, 10]
@@ -181,5 +210,10 @@ if __name__ == '__main__':
 	
 	Parallel(n_jobs=70)(delayed(adv_gen_and_save)(in_iter, out_iter) for (in_iter, out_iter) in tasks)
 
+
+if __name__ == '__main__':
+
+	
+	main()
 	
 
