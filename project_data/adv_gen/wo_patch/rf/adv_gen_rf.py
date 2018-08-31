@@ -36,11 +36,22 @@ rand_idx = np.random.randint(0,len(train_data), (50000,))
 train_data_ss = train_data[rand_idx]
 train_labels_ss = train_labels[rand_idx]
 
+#Writing permutation of train data to a file
+file = 'raw_data/permutations/perm_train.csv'
+with open(file, 'w') as output:
+	writer = csv.writer(output, delimiter = ',')
+	writer.writerow(rand_idx)
 
 #Subsampling the testing dataset
 rand_idx = np.random.randint(0,len(eval_data), (5000,))
 eval_data_ss = eval_data[rand_idx]
 eval_labels_ss = eval_labels[rand_idx]
+
+#Writing permutation of test data to a file
+file = 'raw_data/permutations/perm_test.csv'
+with open(file, 'w') as output:
+	writer = csv.writer(output, delimiter = ',')
+	writer.writerow(rand_idx)
 
 def fitness_func(noise, x, clf):
 
@@ -50,12 +61,8 @@ def fitness_func(noise, x, clf):
 n_est = [1, 2, 5, 10, 20, 50, 100]
 accuracy = []
 epsilons = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-'''
-Want to train each classifier only once
-pretrain classifiers
-results = {}
-results['2'].mean_fitness, etc...
-'''
+
+#Training and saving the classifiers
 clfs = {}
 for est in n_est:
 	clfs[str(est)] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
@@ -64,6 +71,7 @@ for est in n_est:
 	accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
 	print("score: {}".format(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))))
 save_object(clfs, 'raw_data/clfs.pkl')
+
 
 def advGen(est, epsilon):
 
@@ -83,15 +91,6 @@ def advGen(est, epsilon):
 	#iterations = [100, 200, 500, 1000]
 	#epsilons = [0.01, 0.05, 0.1, 0.3, 0.5, 0.8, 1.0]
 
-
-	'''
-	CSV File contains:
-	0. mean_fitness
-	1. mean_noise
-	2. var_noise, min_noise, max_noise, wrong_output, mean_l0,
-	min_l0, max_l0, var_l0, mean_l1, min_l1, max_l1, var_l1
-	'''
-
 	print("noise norm: {}".format(norm(x0)))
 
 	print('Starting the optimization')
@@ -107,7 +106,7 @@ def advGen(est, epsilon):
 
 
 	print('Current Estimator: {}, Current Epsilon: {}'.format(est, epsilon))
-	for image_no, image in enumerate(eval_data_ss[1:101,:]):
+	for image_no, image in enumerate(eval_data_ss[1:501,:]):
 		x0 = [0] * 784
 		print('Current Image: {}'.format(image_no))
 		cons = ({'type': 'ineq',
