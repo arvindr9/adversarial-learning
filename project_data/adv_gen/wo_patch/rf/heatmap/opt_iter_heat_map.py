@@ -163,7 +163,7 @@ def main():
 	parser.add_argument("--max_depth", default = 10, help = "maximum depth for base estimator", type = int)
 	parser.add_argument("--epsilon", default = 0.5, help = "epsilon value for optimization", type = int)
 	parser.add_argument("--no_adv_images", default = 50, help = "number of adversarial to be generated for optimization", type = int)
-	parser.add_argument("--no_of_threads", default = 70, help = "number of threads to run in parallel", type = int)
+	parser.add_argument("--no_of_threads", default = 8, help = "number of threads to run in parallel", type = int)
 	args = parser.parse_args()
 	arguments = args.__dict__
 
