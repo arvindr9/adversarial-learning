@@ -124,18 +124,18 @@ def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
 
 def write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels):
 
-	file = heat_map_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
+	file = heatmap_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
 			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter=',')
 		writer.writerows(image_vecs)
-	file = heat_map_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+	file = heatmap_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
 			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter = ',')
 		writer.writerows(noise_vecs)
 
-	file = heat_map_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+	file = heatmap_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
 		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter = ',')
@@ -153,7 +153,7 @@ def main():
 
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--heat_map_path", default = "heatmap_data", help="where all the data and files related to heat map gen are stored")
+	parser.add_argument("--heatmap_path", default = "heatmap_data", help="where all the data and files related to heat map gen are stored")
 	parser.add_argument("--base_estimator", default = "random_forest", help="base estimator {'random_forest'}")
 	parser.add_argument("--n_estimators", default = 20, help ="no. of estimators in base estimators", type =int)
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
@@ -168,7 +168,7 @@ def main():
 	args_dict = {k: v for k,v in arguments.items()}
 
 	#Declaring all the variables global
-	global heat_map_path
+	global heatmap_path
 	global base_estimator
 	global n_estimators
 	global criterion
@@ -181,7 +181,7 @@ def main():
 	global no_jobs
 
 
-	heat_map_path = args_dict['heat_map_path']
+	heatmap_path = args_dict['heatmap_path']
 	base_estimator = args_dict['base_estimator']
 	n_estimators = args_dict['n_estimators']
 	criterion = args_dict['criterion']
@@ -202,7 +202,7 @@ def main():
 	#Pretraining the classifier
 	clf, _ = pre_training()
 
-	joblib.dump(clf, './heat_map_trained_classifier.pkl') 
+	joblib.dump(clf, './heatmap_trained_classifier.pkl') 
 
 	inner_iter = [5, 10, 20, 50, 100]
 	outer_iter = [1, 2, 5, 10]

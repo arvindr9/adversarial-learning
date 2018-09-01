@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import basinhopping
 import csv
 from sklearn.metrics import accuracy_score
+import joblib
 from joblib import Parallel, delayed
 # import cPickle
 import argparse
@@ -64,14 +65,14 @@ def calc_accuracy_and_display(est, epsilon, clf, in_iter, out_iter, no_adv_image
 
 
 
-	normal_image_label = clf.predict(eval_data_ss)
+	normal_image_label = clf.predict(image_vecs)
 	acc_normal = accuracy_score(eval_labels_ss, normal_image_label)
 
 	adv_image_label = []
 	for image, noise in zip(image_vecs,noise_vecs):
 		adv_image_label.append(clf.predict((image+noise).reshape(1,-1))[0])
 	adv_image_label = np.array(adv_image_label)
-	acc_adv_images = accuracy_score(eval_labels_ss, adv_image_label)
+	acc_adv_images = accuracy_score(correct_labels, adv_image_label)
 
 	misclassification = (len(normal_image_label[normal_image_label!=adv_image_label])/len(normal_image_label))*100
 
@@ -81,7 +82,7 @@ def calc_accuracy_and_display(est, epsilon, clf, in_iter, out_iter, no_adv_image
 def read_image_noise_labels_from_file(in_iter, out_iter):
 
 	#image_vecs
-	file = heat_map_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
+	file = heatmap_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
 			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'r') as filehandle:
 		filecontents = filehandle.readlines()
@@ -91,7 +92,7 @@ def read_image_noise_labels_from_file(in_iter, out_iter):
 
 
 	#noise_vecs
-	file = heat_map_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+	file = heatmap_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
 			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'r') as filehandle:
 		filecontents = filehandle.readlines()
@@ -101,7 +102,7 @@ def read_image_noise_labels_from_file(in_iter, out_iter):
 
 
 	#correct_labels
-	file = heat_map_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+	file = heatmap_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
 		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'r') as filehandle:
 		filecontents = filehandle.readlines()
@@ -151,7 +152,7 @@ def plot_and_save_heatmap(acc_normal_list, acc_adv_list, misclassification_list,
 def main():
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--heat_map_path", default = "/home/siddharth/Desktop/Adversarial Learning SP/new_folder/adversarial-learning/project_data/adv_gen/wo_patch/rf/heatmap", help="where all the data and files related to heat map gen are stored")
+	parser.add_argument("--heatmap_path", default = "heatmap_data")
 	parser.add_argument("--base_estimator", default = "random_forest", help="base estimator {'random_forest'}")
 	parser.add_argument("--n_estimators", default = 20, help ="no. of estimators in base estimators", type =int)
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
@@ -166,7 +167,7 @@ def main():
 	args_dict = {k: v for k,v in arguments.items()}
 
 	#Declaring all the variables global
-	global heat_map_path
+	global heatmap_path
 	global base_estimator
 	global n_estimators
 	global criterion
@@ -179,7 +180,7 @@ def main():
 	global no_jobs
 
 
-	heat_map_path = args_dict['heat_map_path']
+	heatmap_path = args_dict['heatmap_path']
 	base_estimator = args_dict['base_estimator']
 	n_estimators = args_dict['n_estimators']
 	criterion = args_dict['criterion']
@@ -227,7 +228,7 @@ def main():
 
 	#Plot heatmap
 
-	plot_and_save_heatmap(acc_normal_list, acc_adv_list, misclassification_list, inner_iter, outer_iter)
+	plot_and_save_heatmap(acc_normal_list, acc_adv_images_list, misclassification_list, inner_iter, outer_iter)
 
 if __name__ == '__main__':
 
