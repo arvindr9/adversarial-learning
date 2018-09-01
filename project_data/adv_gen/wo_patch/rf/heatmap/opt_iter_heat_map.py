@@ -107,7 +107,7 @@ def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
 
 	print('Cur Estimator: {}, Epsilon: {}, inner iters : {}, outer iters : {}'.format(est, epsilon, in_iter, out_iter))
 
-	for image_no, image in enumerate(eval_data_ss[1:no_adv_images+1,:]):
+	for image_no, image in enumerate(eval_data_ss[:no_adv_images,:]):
 		x0 = [0] * 784
 		print('Current Image: {}'.format(image_no))
 		cons = ({'type': 'ineq',
