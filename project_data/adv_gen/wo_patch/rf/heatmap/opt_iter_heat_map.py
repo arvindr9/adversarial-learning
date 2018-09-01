@@ -124,20 +124,20 @@ def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
 
 
 
-def write_image_noise_labels_to_file(in_iter, out_iter):
+def write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels):
 
-	file = heat_map_path + '/image_data' + '/' + base_classifier_params.keys[0]  + '_' + str(base_classifier_params.values[0]) +\
+	file = heat_map_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
 			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter=',')
 		writer.writerows(image_vecs)
-	file = heat_map_path + '/noise' +'/'+ base_classifier_params.keys[0]  + '_' + str(base_classifier_params.values[0]) +\
+	file = heat_map_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
 			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter = ',')
 		writer.writerows(noise_vecs)
 
-	file = heat_map_path + '/true_labels' +'/'+ base_classifier_params.keys[0]  + '_' + str(base_classifier_params.values[0]) +\
+	file = heat_map_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
 		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter = ',')
@@ -148,7 +148,7 @@ def write_image_noise_labels_to_file(in_iter, out_iter):
 def adv_gen_and_save(in_iter, out_iter):
 
 	image_vecs, noise_vecs, correct_labels = advGen_(n_estimators, epsilon, clf, in_iter, out_iter, no_adv_images)
-	write_image_noise_labels_to_file(in_iter, out_iter)
+	write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels)
 
 
 def main():
@@ -181,7 +181,7 @@ def main():
 	global base_classifier
 	global clf
 	global no_jobs
-	
+
 
 	heat_map_path = args_dict['heat_map_path']
 	base_estimator = args_dict['base_estimator']

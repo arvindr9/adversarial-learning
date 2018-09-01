@@ -91,11 +91,43 @@ def calc_accuracy_and_display(est, epsilon, clf, in_iter, out_iter, no_adv_image
 	return acc_normal, acc_adv_images, misclassification
 
 
-def read_image_noise_labels_from_file():
+def read_image_noise_labels_from_file(in_iter, out_iter):
+
+	#image_vecs
+	file = heat_map_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
+			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	with open(file, 'r') as filehandle:
+		filecontents = filehandle.readlines()
+	image_vecs = []
+	for image in filecontents:
+		image_vecs.append([float(x) for x in image.split(',')])
+
+
+	#noise_vecs
+	file = heat_map_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	with open(file, 'r') as filehandle:
+		filecontents = filehandle.readlines()
+	noise_vecs = []
+	for noise in filecontents:
+		noise_vecs.append([float(x) for x in noise.split(',')])
+
+
+	#correct_labels
+	file = heat_map_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	with open(file, 'r') as filehandle:
+		filecontents = filehandle.readlines()
+	correct_labels = []
+	for label in filecontents:
+		correct_labels.append([float(x) for x in label.split(',')])
+
+	return np.array(image_vecs), np.array(noise_vecs), np.array(correct_labels)
+
+
+def plot_heatmap(acc_normal_list, acc_adv_list, misclassification_list):
 
 	
-
-def plot_heatmap():
 
 
 
@@ -158,7 +190,7 @@ def main():
 		for out_iter in outer_iter:
 
 			#Read image_vecs, noise_vecs, and correct_labels
-			read_image_noise_labels_from_file()
+			image_vecs, noise_vecs, correct_labels = read_image_noise_labels_from_file(in_iter, out_iter)
 			#Calculate accuracy and display
 			acc_normal, acc_adv_images, misclassification = calc_accuracy_and_display(n_estimators, epsilon, clf, in_iter, out_iter, \
 																						no_adv_images, image_vecs, noise_vecs, correct_labels) #Can be done offline
