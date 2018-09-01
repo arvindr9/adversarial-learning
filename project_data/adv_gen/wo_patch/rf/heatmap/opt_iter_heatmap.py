@@ -4,9 +4,6 @@ from scipy.optimize import minimize
 from scipy.linalg import norm
 import tensorflow as tf
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from scipy.optimize import basinhopping
 import csv
 from sklearn.metrics import accuracy_score
