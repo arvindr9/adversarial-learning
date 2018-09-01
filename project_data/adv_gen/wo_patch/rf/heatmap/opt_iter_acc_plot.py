@@ -36,19 +36,6 @@ eval_data_ss = eval_data[rand_idx]
 eval_labels_ss = eval_labels[rand_idx]
 
 
-#Global variables
-#Base estimator parameters
-base_estimator = RandomForestClassifier()
-base_classifier_params = {'n_estimators' = 20,
-						  'criterion' = 'entropy',
-						  'max_depth' = 10}
-
-#No iterative Optimization parameters
-epsilon = 0.5
-no_adv_images = 50
-
-#Data path
-heat_map_path = ''
 
 
 def calc_accuracy_and_display(est, epsilon, clf, in_iter, out_iter, no_adv_images, image_vecs, noise_vecs, correct_labels):
@@ -125,54 +112,88 @@ def read_image_noise_labels_from_file(in_iter, out_iter):
 	return np.array(image_vecs), np.array(noise_vecs), np.array(correct_labels)
 
 
-def plot_heatmap(acc_normal_list, acc_adv_list, misclassification_list):
+def plot_and_save_heatmap(acc_normal_list, acc_adv_list, misclassification_list, inner_iter, outer_iter):
 
+	try:
+		import seaborn as sns
+		import pandas as pd
+		import matplotlib.pyplot as plt
+
+	except:
+		raise ValueError('Libraries : seaborn and pandas not installed')
+
+	sns.set()
+
+
+	rows = pd.Index([str(x) for x in outer_iter], name = 'Inner Iterations')
+	cols = pd.Index([str(x) for x in inner_iter], name = 'Outer Iterations')
+	acc_normal_list_df = pd.DataFrame(acc_normal_list, index = rows, columns = cols)
+	acc_adv_list_df = pd.DataFrame(acc_adv_list, index = rows, columns= cols)
+	misclassification_list_df = pd.DataFrame(misclassification_list, index =rows, columns = cols)
+	heatmap_normal = sns.heatmap(acc_normal_list_df, annot=True, fmt="d")
+	plt.title('Accuracy on normal images')
+	fig = heatmap_normal.get_figure()
+	fig.savefig('heatmap_normal.pdf')
+
+	heatmap_adv = sns.heatmap(acc_adv_list_df, annot= True, fmt ="d")
+	plt.title('Accuracy on adversarial images')
+	fig = heatmap_adv.get_figure()
+	fig.savefig('heatmap_adversarial.pdf')
+
+
+	heatmap_mis = sns.heatmap(misclassification_list_df, annot= True, fmt= "d")
+	plt.title('Misclassification rate')
+	fig = heatmap_mis.get_figure()
+	fig.savefig('heatmap_mis.pdf')
 	
-
 
 
 def main():
 
 	parser = argparse.ArgumentParser()
-    parser.add_argument("--heat_map_path", default="/home/sagarwal311/Adversarial-Learning/heatmap", help="where all the data and files related to heat map gen are stored")
-    parser.add_argument("--base_estimator", default="random_forest", help="base estimator {'random_forest'}")
-    dparser.add_argument("--n_estimators", default=20, help ="no. of estimators in base estimators", type =int)
-    parser.add_argument("--criterion", default='entropy', help ="criterion for base estimator")
-    parser.add_argument("--max_depth", default=10, help = "maximum depth for base estimator", type = int)
-    parser.add_argument("--epsilon", default =0.5, help = "epsilon value for optimization", type = int)
-    parser.add_argument("--no_adv_images", default=50, help = "number of adversarial to be generated for optimization", type = int)
+	parser.add_argument("--heat_map_path", default = "/home/sagarwal311/Adversarial-Learning/heatmap", help="where all the data and files related to heat map gen are stored")
+	parser.add_argument("--base_estimator", default = "random_forest", help="base estimator {'random_forest'}")
+	parser.add_argument("--n_estimators", default = 20, help ="no. of estimators in base estimators", type =int)
+	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
+	parser.add_argument("--max_depth", default = 10, help = "maximum depth for base estimator", type = int)
+	parser.add_argument("--epsilon", default = 0.5, help = "epsilon value for optimization", type = int)
+	parser.add_argument("--no_adv_images", default = 50, help = "number of adversarial to be generated for optimization", type = int)
+	parser.add_argument("--no_of_threads", default = 70, help = "number of threads to run in parallel", type = int)
+	args = parser.parse_args()
+	arguments = args.__dict__
 
-    args = parser.parse_args()
-    arguments = args.__dict__
+	#Make a dictionary of all arguments
+	args_dict = {k: v for k,v in arguments.items()}
 
-    #Make a dictionary of all arguments
-    args_dict = {k: v for k,v in arguments.items()}
+	#Declaring all the variables global
+	global heat_map_path
+	global base_estimator
+	global n_estimators
+	global criterion
+	global max_depth
+	global epsilon
+	global no_adv_images
+	global base_classifier_params
+	global base_classifier
+	global clf
+	global no_jobs
 
-    #Declaring all the variables global
-    global heat_map_path
-    global base_estimator
-    global n_estimators
-    global criterion
-    global max_depth
-    global epsilon
-    global no_adv_images
-    global base_estimator_params
 
-    heat_map_path = args_dict['heat_map_path']
-    base_estimator = args_dict['base_estimator']
-    n_estimators = args_dict['n_estimators']
-    criterion = args_dict['criterion']
-    max_depth = args_dict['max_depth']
-    epsilon = args_dict['epsilon']
-    no_adv_images = args_dict['no_adv_images']
+	heat_map_path = args_dict['heat_map_path']
+	base_estimator = args_dict['base_estimator']
+	n_estimators = args_dict['n_estimators']
+	criterion = args_dict['criterion']
+	max_depth = args_dict['max_depth']
+	epsilon = args_dict['epsilon']
+	no_adv_images = args_dict['no_adv_images']
+	no_jobs = args_dict['no_of_threads']
 
-    
-    if(base_estimator == "random_forest"):
-    	base_estimator = RandomForestClassifier()
-
-    base_classifier_params = {'n_estimators' : n_estimators,\
+	base_classifier_params = {'n_estimators' : n_estimators,\
 						  'criterion' : criterion,\
 						  'max_depth' : max_depth}
+
+	if(base_estimator == "random_forest"):
+		base_classifier = RandomForestClassifier(**base_classifier_params)
 
 
 	inner_iter = [5, 10, 20, 50, 100]
@@ -205,7 +226,7 @@ def main():
 
 	#Plot heatmap
 
-	plot_heatmap(acc_normal_list, acc_adv_list, misclassification_list)
+	plot_and_save_heatmap(acc_normal_list, acc_adv_list, misclassification_list, inner_iter, outer_iter)
 
 if __name__ == '__main__':
 
