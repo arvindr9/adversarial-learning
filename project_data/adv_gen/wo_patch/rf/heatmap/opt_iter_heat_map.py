@@ -156,7 +156,7 @@ def main():
 
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--heat_map_path", default = "/home/sagarwal311/Adversarial-Learning/heatmap", help="where all the data and files related to heat map gen are stored")
+	parser.add_argument("--heat_map_path", default = "heatmap_data", help="where all the data and files related to heat map gen are stored")
 	parser.add_argument("--base_estimator", default = "random_forest", help="base estimator {'random_forest'}")
 	parser.add_argument("--n_estimators", default = 20, help ="no. of estimators in base estimators", type =int)
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
