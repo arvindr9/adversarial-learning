@@ -13,6 +13,7 @@ from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
 import cPickle
 import argparse
+from sklearn.externals import joblib
 
 #Loading MNIST data
 # Load training and eval data
@@ -204,6 +205,7 @@ def main():
 	#Pretraining the classifier
 	clf, _ = pre_training()
 
+	joblib.dump(clf, './heat_map_trained_classifier.pkl') 
 
 	inner_iter = [5, 10, 20, 50, 100]
 	outer_iter = [1, 2, 5, 10]

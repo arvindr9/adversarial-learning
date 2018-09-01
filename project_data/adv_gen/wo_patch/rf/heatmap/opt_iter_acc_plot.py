@@ -11,7 +11,7 @@ from scipy.optimize import basinhopping
 import csv
 from sklearn.metrics import accuracy_score
 from joblib import Parallel, delayed
-import cPickle
+# import cPickle
 import argparse
 
 
@@ -151,7 +151,7 @@ def plot_and_save_heatmap(acc_normal_list, acc_adv_list, misclassification_list,
 def main():
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--heat_map_path", default = "/home/sagarwal311/Adversarial-Learning/heatmap", help="where all the data and files related to heat map gen are stored")
+	parser.add_argument("--heat_map_path", default = "/home/siddharth/Desktop/Adversarial Learning SP/new_folder/adversarial-learning/project_data/adv_gen/wo_patch/rf/heatmap", help="where all the data and files related to heat map gen are stored")
 	parser.add_argument("--base_estimator", default = "random_forest", help="base estimator {'random_forest'}")
 	parser.add_argument("--n_estimators", default = 20, help ="no. of estimators in base estimators", type =int)
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
@@ -195,7 +195,8 @@ def main():
 	if(base_estimator == "random_forest"):
 		base_classifier = RandomForestClassifier(**base_classifier_params)
 
-
+	clf = joblib.load('./heat_map_trained_classifier.pkl')
+	
 	inner_iter = [5, 10, 20, 50, 100]
 	outer_iter = [1, 2, 5, 10]
 
