@@ -14,6 +14,7 @@ import joblib
 from joblib import Parallel, delayed
 # import cPickle
 import argparse
+from sklearn.externals import joblib
 
 
 
@@ -126,23 +127,25 @@ def plot_and_save_heatmap(acc_normal_list, acc_adv_list, misclassification_list,
 	sns.set()
 
 
-	rows = pd.Index([str(x) for x in outer_iter], name = 'Inner Iterations')
-	cols = pd.Index([str(x) for x in inner_iter], name = 'Outer Iterations')
+	cols = pd.Index([str(x) for x in outer_iter], name = 'Outer Iterations')
+	rows = pd.Index([str(x) for x in inner_iter], name = 'Inner Iterations')
 	acc_normal_list_df = pd.DataFrame(acc_normal_list, index = rows, columns = cols)
+
 	acc_adv_list_df = pd.DataFrame(acc_adv_list, index = rows, columns= cols)
+	print(acc_adv_list_df)
 	misclassification_list_df = pd.DataFrame(misclassification_list, index =rows, columns = cols)
-	heatmap_normal = sns.heatmap(acc_normal_list_df, annot=True, fmt="d")
+	heatmap_normal = sns.heatmap(acc_normal_list_df, annot=True)
 	plt.title('Accuracy on normal images')
 	fig = heatmap_normal.get_figure()
 	fig.savefig('heatmap_normal.pdf')
-
-	heatmap_adv = sns.heatmap(acc_adv_list_df, annot= True, fmt ="d")
+	plt.close()
+	heatmap_adv = sns.heatmap(acc_adv_list_df, annot= True)
 	plt.title('Accuracy on adversarial images')
 	fig = heatmap_adv.get_figure()
 	fig.savefig('heatmap_adversarial.pdf')
+	plt.close()
 
-
-	heatmap_mis = sns.heatmap(misclassification_list_df, annot= True, fmt= "d")
+	heatmap_mis = sns.heatmap(misclassification_list_df, annot= True)
 	plt.title('Misclassification rate')
 	fig = heatmap_mis.get_figure()
 	fig.savefig('heatmap_mis.pdf')
