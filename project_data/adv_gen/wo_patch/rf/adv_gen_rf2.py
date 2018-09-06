@@ -21,18 +21,26 @@ eval_data = mnist.test.images  # Returns np.array
 eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
 #Subsampling the training dataset
-rand_idx = np.random.randint(0,len(train_data), (50000,))
-train_data_ss = train_data[rand_idx]
-train_labels_ss = train_labels[rand_idx]
+rand_idx_train = np.random.randint(0,len(train_data), (50000,))
+train_data_ss = train_data[rand_idx_train]
+train_labels_ss = train_labels[rand_idx_train]
 
+#Writing permutation of train data to a file
+file = 'raw_data/permutations/perm_train.csv'
+with open(file, 'w') as output:
+	writer = csv.writer(output, delimiter = ',')
+	writer.writerow(rand_idx_train)
 
 #Subsampling the testing dataset
-rand_idx = np.random.randint(0,len(eval_data), (5000,))
-eval_data_ss = eval_data[rand_idx]
-eval_labels_ss = eval_labels[rand_idx]
+rand_idx_test = np.random.randint(0,len(eval_data), (5000,))
+eval_data_ss = eval_data[rand_idx_test]
+eval_labels_ss = eval_labels[rand_idx_test]
 
-
-
+#Writing permutation of test data to a file
+file = 'raw_data/permutations/perm_test.csv'
+with open(file, 'w') as output:
+	writer = csv.writer(output, delimiter = ',')
+	writer.writerow(rand_idx_test)
 
 #Fitness function
 def fitness_func(noise, x, clf):
@@ -53,14 +61,10 @@ def pre_training():
 
 	"""
 	#Pretraining each classifier
+
 	clf = base_classifier
 	clf.fit(train_data_ss, train_labels_ss)
-	return clf, accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))
-
-
-
-
-
+	return clfs
 
 def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
 
@@ -119,48 +123,44 @@ def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
 
 	return image_vecs, noise_vecs, correct_labels
 
-
-
-
-def write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels):
-
-	file = heatmap_path + '/image_data' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
-			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
-	with open(file, 'w') as output:
-		writer = csv.writer(output, delimiter=',')
-		writer.writerows(image_vecs)
-	file = heatmap_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
-			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
-	with open(file, 'w') as output:
-		writer = csv.writer(output, delimiter = ',')
-		writer.writerows(noise_vecs)
-
-	file = heatmap_path + '/true_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
-		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
-	with open(file, 'w') as output:
-		writer = csv.writer(output, delimiter = ',')
-		writer.writerow(correct_labels)
-
-
-
-def adv_gen_and_save(in_iter, out_iter):
+def adv_gen_and_save(n_estimators, epsilon):
 
 	image_vecs, noise_vecs, correct_labels = advGen_(n_estimators, epsilon, clf, in_iter, out_iter, no_adv_images)
 	write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels)
 
 
-def main():
 
-	
+def write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels, rand_idx):
+
+	file = data_path + '/images' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
+			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	with open(file, 'w') as output:
+		writer = csv.writer(output, delimiter=',')
+		writer.writerows(image_vecs)
+	file = data_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	with open(file, 'w') as output:
+		writer = csv.writer(output, delimiter = ',')
+		writer.writerows(noise_vecs)
+
+	file = data_path + '/correct_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
+		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	with open(file, 'w') as output:
+		writer = csv.writer(output, delimiter = ',')
+		writer.writerow(correct_labels)
+
+def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--heatmap_path", default = "heatmap_data", help="where all the data and files related to heat map gen are stored")
+	parser.add_argument("--data_path", default = "raw_data", help="where all the data and files related to heat map gen are stored")
 	parser.add_argument("--base_estimator", default = "random_forest", help="base estimator {'random_forest'}")
-	parser.add_argument("--n_estimators", default = 20, help ="no. of estimators in base estimators", type =int)
+	parser.add_argument("--n_estimators", default = [1, 2, 5, 10, 20, 50, 100], help ="no. of base estimators", type = list)
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
 	parser.add_argument("--max_depth", default = 10, help = "maximum depth for base estimator", type = int)
-	parser.add_argument("--epsilon", default = 0.5, help = "epsilon value for optimization", type = int)
+	parser.add_argument("--epsilons", default = [0., 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0], help = "epsilon values for optimization", type = list)
 	parser.add_argument("--no_adv_images", default = 50, help = "number of adversarial to be generated for optimization", type = int)
 	parser.add_argument("--no_of_threads", default = 70, help = "number of threads to run in parallel", type = int)
+	parser.add_argument("--inner_iter", default = 20, help = "number of iterations of slsqp in the inner loop of the optimization", type = int)
+	parser.add_argument("--outer_iter", defalult = 5, help = "Number of iterations of basinhopping for the optimization")
 	args = parser.parse_args()
 	arguments = args.__dict__
 
@@ -168,59 +168,52 @@ def main():
 	args_dict = {k: v for k,v in arguments.items()}
 
 	#Declaring all the variables global
-	global heatmap_path
+	global data_path
 	global base_estimator
 	global n_estimators
 	global criterion
 	global max_depth
-	global epsilon
+	global epsilons
 	global no_adv_images
 	global base_classifier_params
 	global base_classifier
-	global clf
+	global clfs
 	global no_jobs
+	global inner_iter
+	global outer_iter
 
+	data_path = args_dict["data_path"]
+	base_estimator = args_dict["base_estimator"]
+	n_estimators = args_dict["n_estimators"]
+	criterion = args_dict["criterion"]
+	max_depth = args_dict["max_depth"]
+	n_estimators = args_dict["n_estimators"]
+	criterion = args_dict["criterion"]
+	max_depth = args_dict["max_depth"]
+	epsilons = args_dict["epsilons"]
+	no_adv_images = args_dict["no_adv_images"]
+	no_jobs = args_dict["no_of_threads"]
+	inner_iter = args_dict["inner_iter"]
+	outer_iter = args_dict["outer_iter"]
 
-	heatmap_path = args_dict['heatmap_path']
-	base_estimator = args_dict['base_estimator']
-	n_estimators = args_dict['n_estimators']
-	criterion = args_dict['criterion']
-	max_depth = args_dict['max_depth']
-	epsilon = args_dict['epsilon']
-	no_adv_images = args_dict['no_adv_images']
-	no_jobs = args_dict['no_of_threads']
+	#Training and saving the classifiers
+	clfs = {}
+	accuracy = []
+	for est in n_estimators:
+		clfs[str(est)] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
+		clf = clfs[str(est)]
+		clf.fit(train_data_ss, train_labels_ss)
+		accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
+		print("score: {}".format(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))))
+	joblib.dump(clfs, 'raw_data/clfs.pkl')
 
-	base_classifier_params = {'n_estimators' : n_estimators,\
-						  'criterion' : criterion,\
-						  'max_depth' : max_depth}
-
-	if(base_estimator == "random_forest"):
-		base_classifier = RandomForestClassifier(**base_classifier_params)
-
-	
-
-	#Pretraining the classifier
-	clf, _ = pre_training()
-
-	joblib.dump(clf, './heatmap_trained_classifier.pkl') 
-
-	inner_iter = [5, 10, 20, 50, 100]
-	outer_iter = [1, 2, 5, 10]
 
 	tasks = []
+	for est in n_estimators:
+		for epsilon in epsilons:
+			tasks.append((est, epsilon))
 
-
-	for in_iter in inner_iter:
-		for out_iter in outer_iter:
-			tasks.append((in_iter, out_iter))
-
-	
-	Parallel(n_jobs=no_jobs)(delayed(adv_gen_and_save)(in_iter, out_iter) for (in_iter, out_iter) in tasks)
-
+	Parallel(n_jobs=no_jobs)(delayed(adv_gen_and_save)(est, eps) for (est, eps) in tasks)
 
 if __name__ == '__main__':
-
-	
-	main()
-	
-
+    main()
