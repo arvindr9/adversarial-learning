@@ -11,6 +11,7 @@ from joblib import Parallel, delayed
 import cPickle
 import argparse
 from sklearn.externals import joblib
+import time
 
 #Loading MNIST data
 # Load training and eval data
@@ -66,7 +67,8 @@ def pre_training():
 	clf.fit(train_data_ss, train_labels_ss)
 	return clfs
 
-def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
+def advGen_(est, epsilon, clf, no_adv_images):
+	t_start = time.time()
 
 	"""
 	Adversarial image generation function for particular values of following parameters
@@ -106,48 +108,55 @@ def advGen_(est, epsilon, clf, in_iter, out_iter, no_adv_images):
 	image_vecs = []
 
 
-	print('Cur Estimator: {}, Epsilon: {}, inner iters : {}, outer iters : {}'.format(est, epsilon, in_iter, out_iter))
+	print('Cur Estimator: {}, Epsilon: {}'.format(est, epsilon))
 
 	for image_no, image in enumerate(eval_data_ss[:no_adv_images,:]):
 		x0 = [0] * 784
 		print('Current Image: {}'.format(image_no))
 		cons = ({'type': 'ineq',
 			'fun': lambda noise: epsilon - norm(np.array(noise))})
-		minimizer_kwargs = dict(method = "slsqp", args = (image,clf), constraints = cons, options = {'maxiter': in_iter})
-		res = basinhopping(fitness_func, niter = out_iter, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+		minimizer_kwargs = dict(method = "slsqp", args = (image,clf), constraints = cons, options = {'maxiter': inner_iter})
+		res = basinhopping(fitness_func, niter = outer_iter, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 		image_vecs.append(image)
 		noise_vecs.append(res['x'])
 		correct_labels.append(eval_labels_ss[image_no])
 
 
-
+	t_end = time.time()
+	t_diff = t_end - t_start
+	time["est_{}_eps_{}".format(est, epsilon)] = t_diff
 	return image_vecs, noise_vecs, correct_labels
 
-def adv_gen_and_save(n_estimators, epsilon):
+def write_image_noise_labels_to_file(clf, epsilon, image_vecs, noise_vecs, correct_labels):
 
-	image_vecs, noise_vecs, correct_labels = advGen_(n_estimators, epsilon, clf, in_iter, out_iter, no_adv_images)
-	write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels)
+	base_param = list(base_classifier_params.keys())[0]
+	base_val = str(clf.get_params()[base_param])
 
-
-
-def write_image_noise_labels_to_file(in_iter, out_iter, image_vecs, noise_vecs, correct_labels, rand_idx):
-
-	file = data_path + '/images' + '/' + list(base_classifier_params.keys())[0] + '_' + str(list(base_classifier_params.values())[0]) +\
-			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	file = data_path + '/images' + '/' + base_param + '_' + base_val +\
+			 '_' + 'eps_' + str(epsilon) + '.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter=',')
 		writer.writerows(image_vecs)
-	file = data_path + '/noise' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
-			 '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	file = data_path + '/noise' +'/'+ base_param  + '_' + base_val +\
+			 '_' + 'eps_' + str(epsilon) + '.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter = ',')
 		writer.writerows(noise_vecs)
 
-	file = data_path + '/correct_labels' +'/'+ list(base_classifier_params.keys())[0]  + '_' + str(list(base_classifier_params.values())[0]) +\
-		  '_' + 'eps_' + str(epsilon) + '_'+ 'in_'+ str(in_iter) + '_out_'+ str(out_iter) +'.csv'
+	file = data_path + '/correct_labels' +'/'+ base_param  + '_' + base_val +\
+		  '_' + 'eps_' + str(epsilon) + '.csv'
 	with open(file, 'w') as output:
 		writer = csv.writer(output, delimiter = ',')
 		writer.writerow(correct_labels)
+
+def adv_gen_and_save(n_estimators, epsilon):
+
+	image_vecs, noise_vecs, correct_labels = advGen_(n_estimators, epsilon, clfs[n_estimators], no_adv_images)
+	write_image_noise_labels_to_file(clfs[n_estimators], epsilon, image_vecs, noise_vecs, correct_labels)
+
+
+
+
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -181,6 +190,7 @@ def main():
 	global no_jobs
 	global inner_iter
 	global outer_iter
+	global time
 
 	data_path = args_dict["data_path"]
 	base_estimator = args_dict["base_estimator"]
@@ -196,24 +206,31 @@ def main():
 	inner_iter = args_dict["inner_iter"]
 	outer_iter = args_dict["outer_iter"]
 
-	#Training and saving the classifiers
-	clfs = {}
-	accuracy = []
-	for est in n_estimators:
-		clfs[str(est)] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
-		clf = clfs[str(est)]
-		clf.fit(train_data_ss, train_labels_ss)
-		accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
-		print("score: {}".format(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))))
-	joblib.dump(clfs, 'raw_data/clfs.pkl')
 
 
-	tasks = []
-	for est in n_estimators:
-		for epsilon in epsilons:
-			tasks.append((est, epsilon))
+	if(base_estimator == "random_forest"):
+		base_classifier = RandomForestClassifier(**base_classifier_params)
+			#Training and saving the classifiers
+		clfs = {}
+		accuracy = []
+		time = {}
+		for est in n_estimators:
 
-	Parallel(n_jobs=no_jobs)(delayed(adv_gen_and_save)(est, eps) for (est, eps) in tasks)
+			base_classifier_params = {'n_estimators' : n_estimators,\
+						  'criterion' : criterion,\
+						  'max_depth' : max_depth}
+			clfs[str(est)] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
+			clf = clfs[str(est)]
+			clf.fit(train_data_ss, train_labels_ss)
+			accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
+			print("score: {}".format(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))))
+		joblib.dump(clfs, 'raw_data/clfs.pkl')
+		tasks = []
+		for est in n_estimators:
+			for epsilon in epsilons:
+				tasks.append((est, epsilon))
+
+		Parallel(n_jobs=no_jobs)(delayed(adv_gen_and_save)(est, eps) for (est, eps) in tasks)
 
 if __name__ == '__main__':
     main()
