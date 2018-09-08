@@ -124,12 +124,12 @@ def advGen_(est, epsilon, clf, no_adv_images):
 
 	t_end = time.time()
 	t_diff = t_end - t_start
-	time["est_{}_eps_{}".format(est, epsilon)] = t_diff
+	times["est_{}_eps_{}".format(est, epsilon)] = t_diff
 	return image_vecs, noise_vecs, correct_labels
 
 def write_image_noise_labels_to_file(clf, epsilon, image_vecs, noise_vecs, correct_labels):
 
-	base_param = list(base_classifier_params.keys())[0]
+	base_param = base_classifier_params[0]
 	base_val = str(clf.get_params()[base_param])
 
 	file = data_path + '/images' + '/' + base_param + '_' + base_val +\
@@ -150,13 +150,8 @@ def write_image_noise_labels_to_file(clf, epsilon, image_vecs, noise_vecs, corre
 		writer.writerow(correct_labels)
 
 def adv_gen_and_save(n_estimators, epsilon):
-
 	image_vecs, noise_vecs, correct_labels = advGen_(n_estimators, epsilon, clfs[n_estimators], no_adv_images)
 	write_image_noise_labels_to_file(clfs[n_estimators], epsilon, image_vecs, noise_vecs, correct_labels)
-
-
-
-
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -165,11 +160,11 @@ def main():
 	parser.add_argument("--n_estimators", default = [1, 2, 5, 10, 20, 50, 100], help ="no. of base estimators", type = list)
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
 	parser.add_argument("--max_depth", default = 10, help = "maximum depth for base estimator", type = int)
-	parser.add_argument("--epsilons", default = [0., 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0], help = "epsilon values for optimization", type = list)
-	parser.add_argument("--no_adv_images", default = 50, help = "number of adversarial to be generated for optimization", type = int)
+	parser.add_argument("--epsilons", default = [0., 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0], help = "epsilon values for optimization", type = list) #CHANGE
+	parser.add_argument("--no_adv_images", default = 3, help = "number of adversarial to be generated for optimization", type = int)
 	parser.add_argument("--no_of_threads", default = 70, help = "number of threads to run in parallel", type = int)
 	parser.add_argument("--inner_iter", default = 20, help = "number of iterations of slsqp in the inner loop of the optimization", type = int)
-	parser.add_argument("--outer_iter", defalult = 5, help = "Number of iterations of basinhopping for the optimization")
+	parser.add_argument("--outer_iter", default = 5, help = "Number of iterations of basinhopping for the optimization")
 	args = parser.parse_args()
 	arguments = args.__dict__
 
@@ -190,7 +185,7 @@ def main():
 	global no_jobs
 	global inner_iter
 	global outer_iter
-	global time
+	global times
 
 	data_path = args_dict["data_path"]
 	base_estimator = args_dict["base_estimator"]
@@ -207,20 +202,21 @@ def main():
 	outer_iter = args_dict["outer_iter"]
 
 
-
 	if(base_estimator == "random_forest"):
-		base_classifier = RandomForestClassifier(**base_classifier_params)
+
+		base_classifier_params = ['n_estimators', 'criterion', 'max_depth']
+		
 			#Training and saving the classifiers
 		clfs = {}
 		accuracy = []
-		time = {}
+		times = {}
 		for est in n_estimators:
-
-			base_classifier_params = {'n_estimators' : n_estimators,\
+			params = {'n_estimators' : n_estimators,\
 						  'criterion' : criterion,\
 						  'max_depth' : max_depth}
-			clfs[str(est)] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
-			clf = clfs[str(est)]
+			base_classifier = RandomForestClassifier(**params)
+			clfs[est] = RandomForestClassifier(n_estimators = est, criterion = 'entropy', max_depth =10)
+			clf = clfs[est]
 			clf.fit(train_data_ss, train_labels_ss)
 			accuracy.append(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss)))
 			print("score: {}".format(accuracy_score(eval_labels_ss, clf.predict(eval_data_ss))))
