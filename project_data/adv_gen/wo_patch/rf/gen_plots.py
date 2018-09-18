@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy import genfromtxt
 
-n_est = [1, 2, 5, 10, 20, 50]
+n_est = [1, 2, 5, 10, 20, 50, 100]
 
-epsilons = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+epsilons = [0.0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-n_images = 400
+n_images = 500
 
 accuracies = genfromtxt("processed_data/accuracy.csv", delimiter = ',')
 fitnesses = genfromtxt("processed_data/fitness.csv", delimiter = ',')

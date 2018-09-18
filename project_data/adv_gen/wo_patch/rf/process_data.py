@@ -5,12 +5,13 @@ from sklearn.metrics import accuracy_score
 from scipy.linalg import norm
 import csv
 import cPickle
+import joblib
 
-n_est = [1, 2, 5, 10, 20, 50]
+n_est = [1, 2, 5, 10, 20, 50, 100]
 
-epsilons = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+epsilons = [0.0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
 
-n_images = 400
+n_images = 500
 
 # image_vecs = {}
 # noise_vecs = {}
@@ -29,11 +30,8 @@ Accuracy (on adv. and on non-adv) vs. epsilon
 
 '''
 
-clfs = None
-
 print("Opening classifiers")
-with open("raw_data/clfs.pkl") as f:
-    clfs = cPickle.load(f)
+clfs = joblib.load("raw_data/clfs.pkl")
 print("Opened classifiers")
 
 for est in n_est:
@@ -50,7 +48,7 @@ for est in n_est:
         noises = genfromtxt("raw_data/noise/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[:n_images]
         images = genfromtxt("raw_data/images/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[:n_images]
         adv_images = images + noises
-        true_labels = genfromtxt("raw_data/correct_labels/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[1:n_images + 1] 
+        true_labels = genfromtxt("raw_data/correct_labels/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[:n_images] 
         non_adv_pred = clf.predict(images)
         adv_pred = clf.predict(adv_images)
         non_adv_probs = clf.predict_proba(images)
@@ -64,8 +62,8 @@ for est in n_est:
 
         mean_fitness = np.mean(prob_perturbation)
         std_fitness = np.std(prob_perturbation)
-        mean_l2 = np.mean(np.array(l2)
-        std_l2 = np.std(np.array(l2)
+        mean_l2 = np.mean(np.array(l2))
+        std_l2 = np.std(np.array(l2))
 
     acc_vec.append(accuracy)
     fitness_vec.append(mean_fitness)
@@ -94,11 +92,11 @@ with open(file, 'w') as output:
 file = 'processed_data/l2.csv'
 with open(file, 'w') as output:
     writer = csv.writer(output, delimiter = ',')
-	writer.writerows(l2_norms)
+    writer.writerows(l2_norms)
 file = 'processed_data/std_l2.csv'
 with open(file, 'w') as output:
     writer = csv.writer(output, delimiter = ',')
-	writer.writerows(std_l2_norms)
+    writer.writerows(std_l2_norms)
         
         
 

@@ -161,8 +161,8 @@ def main():
 	parser.add_argument("--criterion", default = 'entropy', help ="criterion for base estimator")
 	parser.add_argument("--max_depth", default = 10, help = "maximum depth for base estimator", type = int)
 	parser.add_argument("--epsilons", default = [0., 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0], help = "epsilon values for optimization", type = list) #CHANGE
-	parser.add_argument("--no_adv_images", default = 3, help = "number of adversarial to be generated for optimization", type = int)
-	parser.add_argument("--no_of_threads", default = 70, help = "number of threads to run in parallel", type = int)
+	parser.add_argument("--no_adv_images", default = 500, help = "number of adversarial to be generated for optimization", type = int)
+	parser.add_argument("--no_of_threads", default = 15, help = "number of threads to run in parallel", type = int)
 	parser.add_argument("--inner_iter", default = 20, help = "number of iterations of slsqp in the inner loop of the optimization", type = int)
 	parser.add_argument("--outer_iter", default = 5, help = "Number of iterations of basinhopping for the optimization")
 	args = parser.parse_args()
