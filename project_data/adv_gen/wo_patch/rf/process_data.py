@@ -5,13 +5,15 @@ from sklearn.metrics import accuracy_score
 from scipy.linalg import norm
 import csv
 import cPickle
-import joblib
 
-n_est = [1, 2, 5, 10, 20, 50, 100]
+# n_est = [1, 2, 5, 10, 20, 50, 100]
 
-epsilons = [0.0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
+# epsilons = [0.0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
 
-n_images = 500
+n_est = [1, 2, 5, 10]#], 20, 50, 100] CHANGE
+epsilons = [0.0, 0.001, 0.01]#], 0.1, 0.2, 0.3, 0.5, 0.7, 1.0] CHANGE
+
+n_images = 10
 
 # image_vecs = {}
 # noise_vecs = {}
@@ -31,7 +33,7 @@ Accuracy (on adv. and on non-adv) vs. epsilon
 '''
 
 print("Opening classifiers")
-clfs = joblib.load("raw_data/clfs.pkl")
+clfs = cPickle.load(open("raw_data/clfs.pkl"))
 print("Opened classifiers")
 
 for est in n_est:
@@ -44,11 +46,11 @@ for est in n_est:
 
     for eps in epsilons:
         print("Epsilon: {}".format(eps))
-        clf = clfs[str(est)]
-        noises = genfromtxt("raw_data/noise/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[:n_images]
-        images = genfromtxt("raw_data/images/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[:n_images]
+        clf = clfs[est]
+        noises = genfromtxt("raw_data/noise/n_estimators_{}_eps_{}.csv".format(est, eps), delimiter = ',')[:n_images]
+        images = genfromtxt("raw_data/images/n_estimators_{}_eps_{}.csv".format(est, eps), delimiter = ',')[:n_images]
         adv_images = images + noises
-        true_labels = genfromtxt("raw_data/correct_labels/est_{}eps_{}.csv".format(est, eps), delimiter = ',')[:n_images] 
+        true_labels = genfromtxt("raw_data/correct_labels/n_estimators_{}_eps_{}.csv".format(est, eps), delimiter = ',')[:n_images] 
         non_adv_pred = clf.predict(images)
         adv_pred = clf.predict(adv_images)
         non_adv_probs = clf.predict_proba(images)
@@ -64,8 +66,8 @@ for est in n_est:
         std_fitness = np.std(prob_perturbation)
         mean_l2 = np.mean(np.array(l2))
         std_l2 = np.std(np.array(l2))
+        acc_vec.append(accuracy)
 
-    acc_vec.append(accuracy)
     fitness_vec.append(mean_fitness)
     std_fitness_vec.append(std_fitness)
     l2_vec.append(mean_l2)

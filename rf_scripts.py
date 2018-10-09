@@ -1,20 +1,17 @@
-from adv_gen import AdversarialGeneration
-from process import ProcessData
+from scripts.adv_gen.adv_gen import AdversarialGeneration
+from scripts.adv_gen.process import ProcessData
+import os
 # import adv_test
 # import adv_transfer
 # import adv_train
 
 
-'''
-import adv_test
-import adv_train
-time
-'''
+#time
 
 #Run script
 base_classifier = 'random_forest'
-data_path = raw_data_path = 'raw_data'
-processed_data_path = 'processed_data'
+data_path = raw_data_path = os.getcwd() + '/data/adv_gen/rf/raw_data'
+processed_data_path = os.getcwd() + '/data/adv_gen/rf/processed_data'
 max_depth = 10
 criterion = 'entropy'
 no_adv_images = 10 #CHANGE
@@ -88,28 +85,7 @@ process = ProcessData(config = process_config)
 # #fixed epsilon: run for each (est_i, est_j)
 
 
-# transfer_config = {
-#     'base_classifier': base_classifier,
-#     'data_path': data_path
-#     'max_depth': max_depth
-#     'criterion': criterion,
-#     'no_adv_images': no_adv_images,
-#     'n_estimators': n_estimators,
-#     'epsilons': epsilons,
-#     'inner_iter': inner_iter,
-#     'outer_iter': outer_iter,
-#     'no_threads': no_threads
-# }
-# # 7 * (7 * 9) ~=~ 500 accuracy calculations
-# for est_i in n_estimators:
-#     for est_j in n_estimators:
-#         for eps in epsilons:
-#             adv_transfer(config = transfer_config, clf = est_i, data = est_j, epsilon = eps)
 
-
-# #Training script
-
-# epsilon = 0.3
 
 # train_config = {
 #     'base_classifier': base_classifier,
