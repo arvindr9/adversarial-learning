@@ -1,4 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from scipy.optimize import minimize
 from scipy.linalg import norm
 import tensorflow as tf
@@ -13,11 +14,9 @@ from sklearn.externals import joblib
 import time
 from multiprocessing import Pool
 from multiprocessing import Process, Manager
+import copy_reg
+import types
 
-
-'''
-Add part about time
-'''
 def save_object(obj, filename):
    with open(filename, 'wb') as output:  # Overwrites any existing file.
        cPickle.dump(obj, output, cPickle.HIGHEST_PROTOCOL)
@@ -38,7 +37,10 @@ def _unpickle_method(func_name, obj, cls):
             break
     return func.__get__(obj, cls)
 
-class AdversarialGeneration:
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+
+
+class AdversarialGeneration(object):
 
     def __init__(self, config):
         self.base_classifier = config['base_classifier']
@@ -47,11 +49,17 @@ class AdversarialGeneration:
         self.outer_iter = config['outer_iter']
         self.no_threads = config['no_threads']
         self.no_adv_images = config['no_adv_images']
+        self.data_path = config['data_path']
+        if 'train_size' not in config:
+            self.train_size = 50000
+        else:
+            self.train_size = config['train_size']
         if self.base_classifier == 'random_forest':
-            self.data_path = config['data_path']
             self.max_depth = config['max_depth']
             self.criterion = config['criterion']
             self.n_estimators = config['n_estimators']
+        if self.base_classifier == 'svm':
+            self.C_vals = config['C_vals']
     #Run multiple threads of adv_gen 
         self.main()
     
@@ -65,7 +73,7 @@ class AdversarialGeneration:
         eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
         #Subsampling the training dataset
-        rand_idx_train = np.random.randint(0,len(train_data), (50000,))
+        rand_idx_train = np.random.randint(0,len(train_data), ((self.train_size),))
         self.train_data_ss = train_data[rand_idx_train]
         self.train_labels_ss = train_labels[rand_idx_train]
 
@@ -86,7 +94,7 @@ class AdversarialGeneration:
             writer = csv.writer(output, delimiter = ',')
             writer.writerow(rand_idx_test)
     
-    def advGen_(self, est, epsilon, clf, no_adv_images):
+    def advGen_(self, param, epsilon, clf, no_adv_images):
 
         def fitness_func(noise, x, clf):
             x = np.array(x).reshape(1,-1)
@@ -132,7 +140,7 @@ class AdversarialGeneration:
         image_vecs = []
 
 
-        print('Cur Estimator: {}, Epsilon: {}'.format(est, epsilon))
+        print('Cur parameter: {}, Epsilon: {}'.format(param, epsilon))
 
         for image_no, image in enumerate(self.eval_data_ss[:no_adv_images,:]):
             x0 = [0] * 784
@@ -148,7 +156,7 @@ class AdversarialGeneration:
 
         t_end = time.time()
         t_diff = t_end - t_start
-        self.times["est_{}_eps_{}".format(est, epsilon)] = t_diff
+        self.times["est_{}_eps_{}".format(param, epsilon)] = t_diff
         return image_vecs, noise_vecs, correct_labels
 
     def write_image_noise_labels_to_file(self, clf, epsilon, image_vecs, noise_vecs, correct_labels):
@@ -173,15 +181,18 @@ class AdversarialGeneration:
             writer = csv.writer(output, delimiter = ',')
             writer.writerow(correct_labels)
     
-    def adv_gen_and_save(self, n_estimators, epsilon):
-        image_vecs, noise_vecs, correct_labels = self.advGen_(n_estimators, epsilon, self.clfs[n_estimators], self.no_adv_images)
-        self.write_image_noise_labels_to_file(self.clfs[n_estimators], epsilon, image_vecs, noise_vecs, correct_labels)
+    def adv_gen_and_save(self, param, epsilon):
+        print("Inside adv_gen_and_save")
+        image_vecs, noise_vecs, correct_labels = self.advGen_(param, epsilon, self.clfs[param], self.no_adv_images)
+        self.write_image_noise_labels_to_file(self.clfs[param], epsilon, image_vecs, noise_vecs, correct_labels)
         return 0
 
     def main(self):
         self.extractData()
         if self.base_classifier == 'random_forest':
             self.rf()
+        if self.base_classifier == 'svm':
+            self.svm()
 
     def rf(self):
         self.base_classifier_params = ['n_estimators', 'criterion', 'max_depth']
@@ -202,18 +213,41 @@ class AdversarialGeneration:
             accuracy.append(accuracy_score(self.eval_labels_ss, clf.predict(self.eval_data_ss)))
             print("score: {}".format(accuracy_score(self.eval_labels_ss, clf.predict(self.eval_data_ss))))
         save_object(self.clfs, '{}/clfs.pkl'.format(self.data_path))
+        print('saved object')
         tasks = []
         for est in self.n_estimators:
             for epsilon in self.epsilons:
                 tasks.append((est, epsilon))
-        # pool = Pool(processes = self.no_threads)
-        # pool.map(self.adv_gen_and_save, ((est, eps) for (est, eps) in tasks))
-        processes = []
-        for (est, eps) in tasks:
-            p = Process(target = self.adv_gen_and_save, args = (est, eps))
-            processes.append(p)
-            p.start()
-        for p in processes:
-            p.join()
-        #Parallel(n_jobs=self.no_threads)(delayed(self.adv_gen_and_save)(est, eps) for (est, eps) in tasks)
+        print('created tasks')
+        start_time = time.time()
+        print("Starting the parallel script")
+        Parallel(n_jobs=self.no_threads)(delayed(self.adv_gen_and_save)(est, eps) for (est, eps) in tasks)
+        end_time = time.time()
+        self.total_time = end_time - start_time
+    def svm(self):
+        self.base_classifier_params = ['C'] #PLEASE CHANGE THIS!!! (make another file_head instance variable so that the saved file has a lowercase c)
+         #Training and saving the classifiers
+        self.clfs = {}
+        accuracy = []
+        self.times = {}
+        print(self.C_vals)
+        for C in self.C_vals:
+            print("C:", C)
+            params = {'C': C,
+                    'probability': True}
+            self.clfs[C] = SVC(**params)
+            clf = self.clfs[C]
+            clf.fit(self.train_data_ss, self.train_labels_ss)
+            accuracy.append(accuracy_score(self.eval_labels_ss, clf.predict(self.eval_data_ss)))
+            print("score: {}".format(accuracy_score(self.eval_labels_ss, clf.predict(self.eval_data_ss))))
+        save_object(self.clfs, '{}/clfs.pkl'.format(self.data_path))
+        tasks = []
+        for C in self.C_vals:
+            for epsilon in self.epsilons:
+                tasks.append((C, epsilon))
+                start_time = time.time()
+        Parallel(n_jobs=self.no_threads)(delayed(self.adv_gen_and_save)(C, eps) for (C, eps) in tasks)
+        end_time = time.time()
+        self.total_time = end_time - start_time
+        
 

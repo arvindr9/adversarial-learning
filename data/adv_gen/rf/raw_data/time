@@ -1,0 +1,7 @@
+Classifier: random_forest
+Number of examples: 100
+Epsilon values: [0.0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
+Param values: [1, 2, 5, 10, 20, 50, 100]
+Inner iterations: 20
+Outer iterations: 5
+Adversarial genaration time: 46903.0588191 seconds

@@ -11,6 +11,9 @@ from scipy.linalg import norm
 import time
 import cPickle
 from multiprocessing import Process, Manager
+import os
+from math import ceil
+import parallel_utils
 
 def save_object(obj, filename):
    with open(filename, 'wb') as output:  # Overwrites any existing file.
@@ -30,24 +33,31 @@ class AdversarialBoost:
 	estimator_params : estimator parameters
 	"""
 
-	def __init__(self, base_estimator, n_estimators, epsilon, n_boost_random_train_samples, rand_idx_train, rand_idx_test, estimator_params = None):
+	def __init__(self, config):
 
+		self.base_classifier = config['base_classifier']
+		if self.base_classifier == 'random_forest':
+			self.base_estimator = RandomForestClassifier()
+		elif self.base_classifier == 'svm':
+			self.base_estimator = SVC()
 
-		self.base_estimator = base_estimator
-		self.n_estimators = n_estimators
+		self.inner_iter = config['inner_iter']
+		self.outer_iter = config['outer_iter']
+		self.n_boosting_clf = config['boosting_iter']
 		self.estimators_ = []
-		self.estimator_errors_ = np.ones(n_estimators, dtype= np.float64)
-		self.epsilon = epsilon
-		self.n_boost_random_train_samples = n_boost_random_train_samples
-		self.estimator_params = estimator_params
+		self.estimator_errors_ = np.ones(self.n_boosting_clf, dtype= np.float64)
+		self.epsilon = config['epsilon']
+		self.n_boost_random_train_samples = config['n_boost_random_train_samples']
+		self.estimator_params = config['estimator_params']
 		self.total_boosting_time = [] #Total time for each boosting step
 		self.fitting_time = []	#Time for training one boosting classifier
 		self.adv_generation_time = [] #Total time for generating all the adversarial images in each step
 		self.concatenate_time = [] #Time for concatenating images
 		self.per_image_advGen_time = [] #Time per image adversarial image generation
 		self.rand_idxs = []
-		self.rand_idx_train = rand_idx_train
-		self.rand_idx_test = rand_idx_test
+		self.train_size = config['train_size']
+		self.train_data_path = config['train_data_path']
+		self.no_threads = config['no_threads']
 
 		if(isinstance(self.base_estimator, SVC)):
 				
@@ -55,11 +65,11 @@ class AdversarialBoost:
 
 		if(isinstance(self.base_estimator, DecisionTreeClassifier)):
 
-			self.base_estimator.set_params(**{'max_depth': 10})
+			self.base_estimator.set_params(**{'max_depth': 5})
 
 		if(isinstance(self.base_estimator, RandomForestClassifier)):
 
-			self.base_estimator.set_params(**{'max_depth': 10})
+			self.base_estimator.set_params(**{'max_depth': 5})
 
 		if not hasattr(self.base_estimator, 'predict_proba'):
 			raise TypeError("Base estimator has no attribute 'predict_proba'")
@@ -67,8 +77,32 @@ class AdversarialBoost:
 
 	def fit(self, X, y):
 
+		clean_indices = np.random.randint(0, len(X), (self.train_size,))
 
-		for iboost in range(self.n_estimators):
+		adv_data = np.array([])
+		adv_labels = np.array([])
+
+		clean_data = X[clean_indices]
+		clean_labels = y[clean_indices]
+
+		#each iteration: take 5000 random examples, generate adv and append to the adv list
+
+
+
+
+		for iboost in range(self.n_boosting_clf):
+			clean_data = X[clean_indices]
+			clean_labels = y[clean_indices]
+
+			X_union = None
+			y_union = None
+			if np.any(adv_data.shape): #check whether the adv list has elements
+				X_union = np.concatenate((clean_data, adv_data), axis = 0)
+				y_union = np.concatenate((clean_labels, adv_labels), axis = None)
+			else:
+				X_union = clean_data
+				y_union = clean_labels
+			
 
 			b_tot_start = time.time()
 
@@ -80,7 +114,7 @@ class AdversarialBoost:
 
 
 			# Training the weak classifier
-			cur_estimator, estimator_error = self._boost(iboost, X, y)
+			cur_estimator, estimator_error = self._boost(iboost, X_union, y_union)
 
 
 			b_fit_end = time.time()
@@ -93,38 +127,23 @@ class AdversarialBoost:
 
 
 			
-			rand_idx = np.random.randint(0,len(X), (self.n_boost_random_train_samples,))
+			rand_idx = np.random.randint(0,len(clean_data), (self.n_boost_random_train_samples,))
 			self.rand_idxs.append(rand_idx)
-			rand_X = X[rand_idx]
-			rand_y = y[rand_idx].reshape(-1, 1)
+			rand_X = clean_data[rand_idx] #sample images from the clean data to append to the adv set
+			rand_y = clean_labels[rand_idx].reshape(-1, 1)
 			
 			'''
-			setSize: the number of adversarial images to generate in each thread
+			set_size: the number of adversarial images to generate in each thread
 			indexArray: contains the index of the adversarial image to be generated first in each thread
 			ListAdvImages: contains the adversarial examples and the class of each adversarial example
 			'''
-			setSize = 20
-			indexArray = list(range(0,self.n_boost_random_train_samples,setSize))
-			ListAdvImages = None			
-			with Manager() as manager:
-				ListAdvImages = manager.list()
-				processes = []
-				for index in indexArray:
-					p = Process(target = self._advGenParallel, args = (ListAdvImages, cur_estimator, self.epsilon, rand_X, rand_y, index, setSize))
-					processes.append(p)
-					p.start()
-				for p in processes:
-					p.join()
+			set_size = int(ceil(self.n_boost_random_train_samples / self.no_threads))
+			print("adv images:", self.n_boost_random_train_samples)
+			print("no_threads: ", self.no_threads)
+			print("set_size:", set_size)
 
-				
-				# extract two numpy arrays: one with the adversarial examples (adv_examples) and one with class labels (adv_y)
-				adv_examples = ListAdvImages[0][0]
-				adv_y = ListAdvImages[0][1]
-				for i in range(1, len(ListAdvImages)):
-
-					adv_examples = np.concatenate((adv_examples, ListAdvImages[i][0]))
-					adv_y.extend(ListAdvImages[i][1])
-
+			
+			adv_examples, adv_y = parallel_utils.accumulate_parallel_function(self._advGenParallel, self.n_boost_random_train_samples, cur_estimator, self.epsilon, rand_X, rand_y, set_size)
 				
 			b_adv_gen_end = time.time()
 
@@ -134,9 +153,13 @@ class AdversarialBoost:
 			b_adv_conc_start = time.time()
 
 			
-			#Taking a union of adversarial examples and original training data
-			X = np.concatenate((X, adv_examples), axis = 0)
-			y = np.concatenate((y, adv_y), axis = 0)
+			#Append the new adversarial examples to the list of adversarial examples
+			if np.any(adv_data.shape):
+				adv_data = np.concatenate((adv_data, adv_examples), axis = 0)
+				adv_labels = np.concatenate((adv_labels, adv_y), axis = None)
+			else:
+				adv_data = adv_examples
+				adv_labels = adv_y
 
 
 			b_adv_conc_end = time.time()
@@ -158,8 +181,8 @@ class AdversarialBoost:
 
 			if iboost % 5 == 0:
 				if iboost >= 5:
-					os.remove(str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '.pkl')
-				save_object(self, 'ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '.pkl')
+					os.remove(self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '.pkl')
+				save_object(self, self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '.pkl')
 
 		return self
 
@@ -218,49 +241,7 @@ class AdversarialBoost:
 		return -1*norm(clf.predict_proba(x) - clf.predict_proba(x+noise))
 
 
-	# def _advGen(self, estimator, n_adv, n_boost_random_train_samples, epsilon, X, y):
-
-
-	# 	x0 = [0] * np.shape(X)[1]
-
-	# 	cons = ({'type': 'ineq', 'fun': lambda noise: epsilon - norm(np.array(noise))})
-
-	# 	optimal_noise = []
-	# 	optimal_fitness = []
-
-	# 	rand_idx = np.random.randint(0,len(X), (n_boost_random_train_samples,))
-	# 	rand_X = X[rand_idx]
-	# 	rand_y = y[rand_idx]
-
-	# 	for image_no, image in enumerate(rand_X):
-			
-	# 		per_image_advGen_start = time.time()
-
-	# 		print "Generating adversarial examples for image number : %d\n" %image_no ,
-
-	# 		minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': 100})
-	# 		res = basinhopping(self.fitness_func, niter = 10, x0 = x0, minimizer_kwargs = minimizer_kwargs)
-	# 		optimal_fitness.append(res['fun'])
-	# 		cur_noise = res['x']
-
-	# 		per_image_advGen_end = time.time()
-
-	# 		self.per_image_advGen_time.append(per_image_advGen_end - per_image_advGen_start)
-			
-	# 		optimal_noise.append(cur_noise)
-
-	# 	index_noise = sorted(range(len(optimal_fitness)), key=lambda k: optimal_fitness[k])
-
-	# 	# adv_examples = []
-	# 	# adv_y = []
-	# 	# for index in range(len(optimal_noise)):
-	# 	# 	adv_examples.append(rand_X[index, :] + optimal_noise[index])
-	# 	# 	adv_y.append(rand_y[index])
-		
-
-	# 	return rand_X + optimal_noise, rand_y
-
-	def _advGenParallel(self, lst, estimator, epsilon, rand_X, rand_y, index, setSize):
+	def _advGenParallel(self, lst, estimator, epsilon, rand_X, rand_y, index, set_size):
 
 		x0 = [0] * np.shape(rand_X)[1]
 
@@ -270,186 +251,69 @@ class AdversarialBoost:
 		
 		X = None
 		y = None
-		if index + setSize >= rand_X.shape[0]:
+		if index + set_size >= rand_X.shape[0]:
 			X = rand_X[index:,:]
-			y = rand_y[index:,:]
+			y = rand_y[index:]
 		else:
-			X = rand_X[index:index + setSize, :]
-			y = rand_y[index:index + setSize, :]
+			X = rand_X[index:index + set_size, :]
+			y = rand_y[index:index + set_size]
 
 		for image_no, image in enumerate(X):
 			
-			per_image_advGen_start = time.time()
+			# per_image_advGen_start = time.time()
 
-			print "Generating adversarial examples for image number : %d\n" %image_no ,
+			# print "Generating adversarial examples for image number : %d\n" %image_no ,
 
-			minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': 100})
-			res = basinhopping(self.fitness_func, niter = 10, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+			minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': self.inner_iter})
+			res = basinhopping(self.fitness_func, niter = self.outer_iter, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			cur_noise = res['x']
 
-			per_image_advGen_end = time.time()
+			# per_image_advGen_end = time.time()
 
-			self.per_image_advGen_time.append(per_image_advGen_end - per_image_advGen_start)
+			# self.per_image_advGen_time.append(per_image_advGen_end - per_image_advGen_start)
 			
 			optimal_noise.append(cur_noise)
 
-		# adv_examples = []
-		# adv_y = []
-		# for index in range(len(optimal_noise)):
-		# 	adv_examples.append(X[index, :] + optimal_noise[index])
-		# 	adv_y.append(y[index][0])
-
-		lst.append((X + optimal_noise, y[:][0]))
+		lst.append((X + optimal_noise, y)) #(adv. images, labels) #changed from y[:][0]
 		
+	'''
+	TODO: Call main from the init method
+	make a config dictionary that takes in the number of estimators and the clf type (don't worry about clf type for now;
+	number of estimators is more important since I want to test this for 5 estimators first)
+	The training size could be decreased
+	'''
 
-if(__name__ == '__main__'):
+	def main(self):
+		#Loading Mnist data
+		# Load training and eval data
+		mnist = tf.contrib.learn.datasets.load_dataset("mnist")
+		train_data = mnist.train.images  # Returns np.array
+		train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
+		eval_data = mnist.test.images  # Returns np.array
+		eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
+		#Shuffling the training dataset
+		rand_idx_train = np.random.randint(0,len(train_data), (50000,)) 
+		train_data = train_data[rand_idx_train]
+		train_labels = train_labels[rand_idx_train]
 
-	clf = 'rf'
+		#Shuffling the testing dataset
+		rand_idx_test = np.random.randint(0,len(eval_data), (50000,))
+		eval_data = eval_data[rand_idx_test]
+		eval_labels = eval_labels[rand_idx_test]
 
-	estimator_params = {'n_estimators': 100, 'criterion': 'entropy', 'max_depth': 5, 'min_samples_split': 5}
-	#Loading Mnist data
-	# Load training and eval data
-	mnist = tf.contrib.learn.datasets.load_dataset("mnist")
-	train_data = mnist.train.images  # Returns np.array
-	train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
-	eval_data = mnist.test.images  # Returns np.array
-	eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+		# self.rand_idx_train = rand_idx_train
+		# self.rand_idx_test = rand_idx_test
 
-	#Subsampling the training dataset
-	rand_idx_train = np.random.randint(0,len(train_data), (5000,))
-	train_data_ss = train_data[rand_idx_train]
-	train_labels_ss = train_labels[rand_idx_train]
+		#Adversarial Training
 
+		print "\n\n Training Random forest with adversarial images"
 
-	#Subsampling the testing dataset
-	rand_idx_test = np.random.randint(0,len(eval_data), (5000,))
-	eval_data_ss = eval_data[rand_idx_test]
-	eval_labels_ss = eval_labels[rand_idx_test]
+		# ab = AdversarialBoost(RandomForestClassifier(), no_boosting_clf, epsilon_train, n_boost_random_train_samples, rand_idx_train, rand_idx_test, estimator_params = estimator_params)
+		# ab.fit(train_data_ss, train_labels_ss)
 
-	#Training parameters
-	no_boosting_clf = 100
-	epsilon_train = 0.3
-	n_boost_random_train_samples =  1000
+		#self.fit(train_data_ss, train_labels_ss)
+		self.fit(train_data, train_labels)
 
-
-	#Testing parameters
-	# n_test_adv_images = 200
-	# epsilon_test_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-	#Adversarial Training
-
-	print "\n\n Training Random forest with adversarial images"
-
-	ab = AdversarialBoost(RandomForestClassifier(), no_boosting_clf, epsilon_train, n_boost_random_train_samples, rand_idx_train, rand_idx_test, estimator_params = estimator_params)
-	ab.fit(train_data_ss, train_labels_ss)
-
-	# Saving the random forest to a pkl file
-	save_object(ab, 'raw_data/ab_est_' + str(estimator_params['n_estimators']) +'_steps_'+ str(no_boosting_clf)+ '.pkl')
-
-	#Saving the data for time benchmarks
-		# 	self.total_boosting_time = [] #Total time for each boosting step
-		# self.fitting_time = []	#Time for training one boosting classifier
-		# self.adv_generation_time = [] #Total time for generating all the adversarial images in each step
-		# self.concatenate_time = [] #Time for concatenating images
-		# self.per_image_advGen_time
-	# with open('boosting_time_' + str(estimator_params['n_estimators']) + '.csv', "wb") as f:
-	# 	writer = csv.writer(f)
-	# 	writer.writerow(ab.total_boosting_time)
-	# with open('fitting_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
-	# 	writer = csv.writer(f)
-	# 	writer.writerow(ab.fitting_time)
-	# with open('adv_generation_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
-	# 	writer = csv.writer(f)
-	# 	writer.writerow(ab.adv_generation_time)
-	# with open('concatenate_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
-	# 	writer = csv.writer(f)
-	# 	writer.writerow(ab.concatenate_time)
-	# with open('per_image_advGen_time_' + str(no_boosting_clf) + '.csv', "wb") as f:
-	# 	writer = csv.writer(f)
-	# 	writer.writerow(ab.per_image_advGen_time)
-		
-
-
-
-	# estimators_list = ab.estimators_
-
-	#Generating adversarial images for best estimator (that last estimator) and calculating accuracy
-
-
-	# print "\n\n Calculating accuracies on test adversarial images"
-
-	
-	# for index, est in enumerate(estimators_list):
-
-	# 	print "\n\n Current Estimator %d" %index 
-	# 	cur_est_acc = []
-
-		# for epsilon_test in epsilon_test_list:
-
-		# 	#Generating some adversarial examples
-
-		# 	print "\n current epsilon %f" %epsilon_test
-
-		# 	adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
-		# 	cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
-
-	# 	accuracy.append(cur_est_acc)
-
-	# accuracy = []
-	
-	# print "\n\n For last estimator"
-
-	# cur_est_acc = []
-
-	# est = estimators_list[-1]
-
-	# for epsilon_test in epsilon_test_list:
-
-	# 	#Generating some adversarial examples
-
-	# 	print "\n current epsilon %f" %epsilon_test
-
-	# 	adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
-	# 	cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
-  
-	# accuracy.append(cur_est_acc)
-
-	# print "\n\n For the first estimator"
-
-	# cur_est_acc = []
-
-	# est = estimators_list[0]
-
-	# for epsilon_test in epsilon_test_list:
-
-	# 	#Generating some adversarial examples
-
-	# 	print "\n current epsilon %f" %epsilon_test
-
-	# 	adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
-	# 	cur_est_acc.append(accuracy_score(adv_true_adv, est.predict(adv_examples_test_adv)))
-  
-	# accuracy.append(cur_est_acc)
-
-
-	# #Writing the accuracies to a csv file
-
-	# print "\n\n\n Printing the accuracy 2 d array if file is not saved "
-	# print(accuracy)
-
-
-	# print "\n\n\n Printing the estimator error list if file is not saved "
-	# print(ab.estimator_errors_)
-
-	# with open("accuracy.csv", "wb") as f:
-	#     writer = csv.writer(f)
-	#     writer.writerows(accuracy)
-
-	# with open('est_error.csv', "wb") as f:
-	# 	writer  = csv.writer(f)
-	# 	writer.writerow(ab.estimator_errors_)
-
-
-
-
-
+		# Saving the random forest to a pkl file
+		save_object(self, self.train_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf)+ '.pkl')

@@ -9,14 +9,20 @@ import cPickle
 
 class ProcessData:
 
-    def init(self, config):
+    def __init__(self, config):
         self.base_classifier = config['base_classifier']
         self.epsilons = config['epsilons']
         self.no_images = config['no_adv_images']
         self.raw_data_path = config['raw_data_path']
         self.processed_data_path = config['processed_data_path']
         if self.base_classifier == 'random_forest':
-            self.n_estimators = config['n_estimators']
+            self.param_name = 'Estimators'
+            self.file_head = 'n_estimators'
+            self.param_vals = config['n_estimators']
+        elif self.base_classifier == 'svm':
+            self.param_name = 'C'
+            self.file_head = 'C' #PLEASE CHANGE THIS!!
+            self.param_vals = config['C_vals']
         self.main()
     
 
@@ -33,11 +39,8 @@ class ProcessData:
         print("Opening classifiers")
         self.clfs = cPickle.load(open("{}/clfs.pkl".format(self.raw_data_path)))
         print("Opened classifiers")
-
-        if (self.base_classifier == 'random_forest_classifier'):
-            accuracies, fitnesses, std_fitnesses, l2_norms, std_l2_norms = self.rf()
-        elif (self.base_classifier == 'svm'):
-            accuracies, fitnesses, std_fitnesses, l2_norms, std_l2_norms = self.svm()
+        
+        accuracies, fitnesses, std_fitnesses, l2_norms, std_l2_norms = self.process()
 
 
         file = '{}/accuracy.csv'.format(self.processed_data_path)
@@ -61,15 +64,15 @@ class ProcessData:
             writer = csv.writer(output, delimiter = ',')
             writer.writerows(std_l2_norms)
 
-    def rf(self):
+    def process(self):
         accuracies = []
         fitnesses = []
         std_fitnesses = []
         l2_norms = []
         std_l2_norms = []
 
-        for est in self.n_estimators:
-            print("Estimator: {}".format(est))
+        for param in self.param_vals:
+            print("{}: {}".format(self.param_name, param))
             acc_vec = []
             fitness_vec = []
             std_fitness_vec = []
@@ -78,11 +81,11 @@ class ProcessData:
 
             for eps in self.epsilons:
                 print("Epsilon: {}".format(eps))
-                clf = self.clfs[est]
-                noises = genfromtxt("{}/noise/n_estimators_{}_eps_{}.csv".format(self.raw_data_path, est, eps), delimiter = ',')[:self.no_images]
-                images = genfromtxt("{}/images/n_estimators_{}_eps_{}.csv".format(self.raw_data_path, est, eps), delimiter = ',')[:self.no_images]
+                clf = self.clfs[param]
+                noises = genfromtxt("{}/noise/{}_{}_eps_{}.csv".format(self.raw_data_path, self.file_head, param, eps), delimiter = ',')[:self.no_images]
+                images = genfromtxt("{}/images/{}_{}_eps_{}.csv".format(self.raw_data_path, self.file_head, param, eps), delimiter = ',')[:self.no_images]
                 adv_images = images + noises
-                true_labels = genfromtxt("{}/correct_labels/n_estimators_{}_eps_{}.csv".format(self.raw_data_path, est, eps), delimiter = ',')[:self.no_images] 
+                true_labels = genfromtxt("{}/correct_labels/{}_{}_eps_{}.csv".format(self.raw_data_path, self.file_head, param, eps), delimiter = ',')[:self.no_images] 
                 non_adv_pred = clf.predict(images)
                 adv_pred = clf.predict(adv_images)
                 non_adv_probs = clf.predict_proba(images)
@@ -99,17 +102,16 @@ class ProcessData:
                 std_l2 = np.std(np.array(l2))
                 acc_vec.append(accuracy)
 
-            fitness_vec.append(mean_fitness)
-            std_fitness_vec.append(std_fitness)
-            l2_vec.append(mean_l2)
-            std_l2_vec.append(std_l2)
+                fitness_vec.append(mean_fitness)
+                std_fitness_vec.append(std_fitness)
+                l2_vec.append(mean_l2)
+                std_l2_vec.append(std_l2)
 
             accuracies.append(acc_vec)
             fitnesses.append(fitness_vec)
             std_fitnesses.append(std_fitness_vec)
-            # l2_norms.append(mean_l2)
-            # std_l2_norms.append(std_l2)
-            return accuracies, fitnesses, std_fitnesses, l2_norms, std_l2_norms
-    def svm(self):
-        return [], [], [], [], [], []
+        # l2_norms.append(mean_l2)
+        # std_l2_norms.append(std_l2)
+        return accuracies, fitnesses, std_fitnesses, l2_norms, std_l2_norms
+
         
