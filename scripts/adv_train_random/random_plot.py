@@ -3,18 +3,20 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-class TrainPlot:
+class RandomPlot:
     def __init__(self, config):
         epsilons = config['epsilons']
         boosting_iter = config['boosting_iter']
-        train_data_path = config['train_data_path']
         gen_data_path = config['gen_data_path']
-        train_estimators = config['train_estimators']
+        random_data_path = config['random_data_path']
+        random_estimators = config['random_estimators']
         gen_estimators = config['gen_estimators'] #list of estimators used in adv_gen
-        accuracy_file = train_data_path + '/processed_data/accuracy_{}.csv'.format(train_estimators)
+        accuracy_file = random_data_path + '/processed_data/accuracy_{}.csv'.format(random_estimators)
         accuracies = genfromtxt(accuracy_file, delimiter= ',')
         vanilla_accuracy_file = gen_data_path + '/accuracy.csv'
-        vanilla_accuracies = genfromtxt(vanilla_accuracy_file, delimiter = ',')[gen_estimators.index(train_estimators)]
+        vanilla_accuracies = genfromtxt(vanilla_accuracy_file, delimiter = ',')[gen_estimators.index(random_estimators)]
+        # random_accuracy_file = random_data_path + '/accuracy_{}.csv'.format(train_estimators)
+        # random_accuracies = genfromtxt(random_accuracy_file, delimiter = ',')
 
         steps = [4, 29, 54, 79] #make a way to compute steps?
 
@@ -30,7 +32,7 @@ class TrainPlot:
         ax, fig = plt.subplots()
         plt.xlabel("Epsilon")
         plt.ylabel("Accuracy")
-        plt.title("Adversarial Training: accuracy versus epsilon")
+        plt.title("Random Training: accuracy versus epsilon")
         print(epsilons)
         print(accuracies[-1])
         #plt.plot(epsilons, accuracies[-1])
@@ -50,7 +52,7 @@ class TrainPlot:
         legend = ["Estimators:{}".format(step) for step in steps] + ["Vanilla-trained classifier"]
         # legend = ["Estimators:{}".format(estimator_values[i]) for i in range(0, len(estimator_values), 5)] + ["Vanilla-trained classifier"]
         plt.legend(legend)
-        plt.title("Adversarial Training")
-        plt_name = "{}/plots/accuracy_train_est_{}.png".format(train_data_path, train_estimators)
+        plt.title("Random Noise")
+        plt_name = "{}/plots/accuracy_random_est_{}.png".format(random_data_path, random_estimators)
         plt.savefig(plt_name)
         

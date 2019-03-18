@@ -12,16 +12,14 @@ import time
 import cPickle
 from multiprocessing import Process, Manager
 import os
-from math import ceil
-import parallel_utils
+import copy
 
 def save_object(obj, filename):
    with open(filename, 'wb') as output:  # Overwrites any existing file.
        cPickle.dump(obj, output, cPickle.HIGHEST_PROTOCOL)
-#
 
-class AdversarialBoost:
-
+class AdvTrainRandom:
+    
 	"""
 	Class for Adversarial Boosting
 	Parameters
@@ -56,8 +54,8 @@ class AdversarialBoost:
 		self.per_image_advGen_time = [] #Time per image adversarial image generation
 		self.rand_idxs = []
 		self.train_size = config['train_size']
-		self.train_data_path = config['train_data_path']
-		self.no_threads = config['no_threads']
+		self.random_data_path = config['random_data_path']
+		# self.no_threads = config['no_threads']
 
 		if(isinstance(self.base_estimator, SVC)):
 				
@@ -129,21 +127,28 @@ class AdversarialBoost:
 			
 			rand_idx = np.random.randint(0,len(clean_data), (self.n_boost_random_train_samples,))
 			self.rand_idxs.append(rand_idx)
-			rand_X = clean_data[rand_idx] #sample images from the clean data to append to the adv set
-			rand_y = clean_labels[rand_idx].reshape(-1, 1)
-			
-			'''
-			set_size: the number of adversarial images to generate in each thread
-			indexArray: contains the index of the adversarial image to be generated first in each thread
-			ListAdvImages: contains the adversarial examples and the class of each adversarial example
-			'''
-			set_size = int(ceil(self.n_boost_random_train_samples / self.no_threads))
-			print("adv images:", self.n_boost_random_train_samples)
-			print("no_threads: ", self.no_threads)
-			print("set_size:", set_size)
+			adv_examples = clean_data[rand_idx] #sample images from the clean data to append to the adv set
+			adv_y = clean_labels[rand_idx].reshape(-1, 1)
+
+			adv_examples, adv_y = self.randomGen(adv_examples, adv_y, self.epsilon)
+
 
 			
-			adv_examples, adv_y = parallel_utils.accumulate_parallel_function(self._advGenParallel, self.n_boost_random_train_samples, cur_estimator, self.epsilon, rand_X, rand_y, set_size)
+
+			
+			#commented out code: used to generate adversarial exampples in parallel
+			# '''
+			# set_size: the number of adversarial images to generate in each thread
+			# indexArray: contains the index of the adversarial image to be generated first in each thread
+			# ListAdvImages: contains the adversarial examples and the class of each adversarial example
+			# '''
+			# set_size = int(ceil(self.n_boost_random_train_samples / self.no_threads))
+			# print("adv images:", self.n_boost_random_train_samples)
+			# print("no_threads: ", self.no_threads)
+			# print("set_size:", set_size)
+
+			
+			# adv_examples, adv_y = parallel_utils.accumulate_parallel_function(self._advGenParallel, self.n_boost_random_train_samples, cur_estimator, self.epsilon, rand_X, rand_y, set_size)
 				
 			b_adv_gen_end = time.time()
 
@@ -181,10 +186,50 @@ class AdversarialBoost:
 
 			if iboost % 5 == 0:
 				if iboost >= 5:
-					os.remove(self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '.pkl')
-				save_object(self, self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '.pkl')
+					os.remove(self.random_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '.pkl')
+				save_object(self, self.random_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '.pkl')
 
 		return self
+
+	def _advGenParallel(self, lst, estimator, epsilon, rand_X, rand_y, index, set_size, random = False):
+
+		if random == True:
+			self.inner_iter = 1
+			self.outer_iter = 1
+
+		x0 = [0] * np.shape(rand_X)[1]
+
+		cons = ({'type': 'ineq', 'fun': lambda noise: epsilon - norm(np.array(noise))})
+
+		optimal_noise = []
+		
+		X = None
+		y = None
+		if index + set_size >= rand_X.shape[0]:
+			X = rand_X[index:,:]
+			y = rand_y[index:]
+		else:
+			X = rand_X[index:index + set_size, :]
+			y = rand_y[index:index + set_size]
+		# print('inner_iter:', self.inner_iter, 'outer_iter:', self.outer_iter)
+
+		for image_no, image in enumerate(X):
+			
+			# per_image_advGen_start = time.time()
+
+			#print "Generating adversarial examples for image number : %d\n" %image_no ,
+		
+			minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': self.inner_iter})
+			res = basinhopping(self.fitness_func, niter = self.outer_iter, x0 = x0, minimizer_kwargs = minimizer_kwargs)
+			cur_noise = res['x']
+
+			# per_image_advGen_end = time.time()
+
+			# self.per_image_advGen_time.append(per_image_advGen_end - per_image_advGen_start)
+			
+			optimal_noise.append(cur_noise)
+
+		lst.append((X + optimal_noise, y)) #(adv. images, labels) #changed from y[:][0]
 
 
 
@@ -240,46 +285,15 @@ class AdversarialBoost:
 		x = np.array(x).reshape(1,-1)
 		return -1*norm(clf.predict_proba(x) - clf.predict_proba(x+noise))
 
-
-	def _advGenParallel(self, lst, estimator, epsilon, rand_X, rand_y, index, set_size, random = False):
-
-		if random == True:
-			self.inner_iter = 1
-			self.outer_iter = 1
-
-		x0 = [0] * np.shape(rand_X)[1]
-
-		cons = ({'type': 'ineq', 'fun': lambda noise: epsilon - norm(np.array(noise))})
-
-		optimal_noise = []
-		
-		X = None
-		y = None
-		if index + set_size >= rand_X.shape[0]:
-			X = rand_X[index:,:]
-			y = rand_y[index:]
-		else:
-			X = rand_X[index:index + set_size, :]
-			y = rand_y[index:index + set_size]
-		# print('inner_iter:', self.inner_iter, 'outer_iter:', self.outer_iter)
-
-		for image_no, image in enumerate(X):
-			
-			# per_image_advGen_start = time.time()
-
-			#print "Generating adversarial examples for image number : %d\n" %image_no ,
-		
-			minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': self.inner_iter})
-			res = basinhopping(self.fitness_func, niter = self.outer_iter, x0 = x0, minimizer_kwargs = minimizer_kwargs)
-			cur_noise = res['x']
-
-			# per_image_advGen_end = time.time()
-
-			# self.per_image_advGen_time.append(per_image_advGen_end - per_image_advGen_start)
-			
-			optimal_noise.append(cur_noise)
-
-		lst.append((X + optimal_noise, y)) #(adv. images, labels) #changed from y[:][0]
+	def randomGen(self, adv_examples, adv_y, epsilon):
+		adv_examples = copy.deepcopy(adv_examples) #prevents the original data from being modified
+		adv_y = copy.deepcopy(adv_y)
+		for i in range(len(adv_examples)):
+			noise = np.random.uniform(-1, 1, 784)
+			noise /= np.linalg.norm(noise)
+			noise *= epsilon
+			adv_examples[i] += noise
+		return adv_examples, adv_y
 		
 	'''
 	TODO: Call main from the init method
@@ -321,4 +335,4 @@ class AdversarialBoost:
 		self.fit(train_data, train_labels)
 
 		# Saving the random forest to a pkl file
-		save_object(self, self.train_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf)+ '.pkl')
+		save_object(self, self.random_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf)+ '.pkl')

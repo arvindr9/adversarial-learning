@@ -1,25 +1,24 @@
-from adv_train import AdversarialBoost
+from adv_train_random import AdvTrainRandom
 import tensorflow as tf
 import cPickle
 from tqdm import tqdm
-from multiprocessing import Process, Manager
 from math import ceil
-import parallel_utils
 import numpy as np
 from sklearn.metrics import accuracy_score
 import csv
+import parallel_utils
 
-#python rf_scripts.py --train_process 1 --train_estimators 20
+#python rf_scripts.py --random_process 1 --train_estimators 20
 
-class TrainProcess:
+class RandomProcess:
 
 	def __init__(self, config):
 
-		train_data_path = config['train_data_path']
+		random_data_path = config['random_data_path']
 		n_test_adv_images = config['n_test_adv_images']
-		no_threads = config['no_threads']
 		boosting_iter = config['boosting_iter']
-		train_estimators = config['train_estimators']
+		random_estimators = config['random_estimators']
+		no_threads = config['no_threads']
 		epsilon_test_list = config['epsilons']
 
 		mnist = tf.contrib.learn.datasets.load_dataset("mnist")
@@ -32,8 +31,8 @@ class TrainProcess:
 		eval_labels_subset = eval_labels[indices]
 
 
-		clf_data_path = train_data_path + '/clfs/ab_est_{}_steps_{}.pkl'.format(train_estimators, boosting_iter)
-		processed_data_path = train_data_path + '/processed_data'
+		clf_data_path = random_data_path + '/clfs/ab_est_{}_steps_{}.pkl'.format(random_estimators, boosting_iter)
+		processed_data_path = random_data_path + '/processed_data'
 
 		f = open(clf_data_path)
 		ab = cPickle.load(f)
@@ -70,6 +69,7 @@ class TrainProcess:
 
 					# adv_examples_test_adv, adv_true_adv = ab._advGen(est, n_test_adv_images, n_test_adv_images, epsilon_test, eval_data_ss, eval_labels_ss)
 					adv_examples_test_adv, true_labels_adv = parallel_utils.accumulate_parallel_function(ab._advGenParallel, n_test_adv_images, est, epsilon_test, eval_data_subset, eval_labels_subset, set_size)
+					# adv_examples_test_adv, true_labels_adv = ab.randomGen(adv_examples_test_adv, true_labels_adv, epsilon_test)
 					cur_est_acc.append(accuracy_score(true_labels_adv, est.predict(adv_examples_test_adv)))
 
 				accuracy.append(cur_est_acc)
@@ -92,11 +92,11 @@ class TrainProcess:
 	
 		# accuracy.append(cur_est_acc)
 
-		with open("{}/accuracy_{}.csv".format(processed_data_path, train_estimators), "wb") as f:
+		with open("{}/accuracy_{}.csv".format(processed_data_path, random_estimators), "wb") as f:
 			writer = csv.writer(f)
 			writer.writerows(accuracy)
 
-		with open('{}/est_error_{}.csv'.format(processed_data_path, train_estimators), "wb") as f:
+		with open('{}/est_error_{}.csv'.format(processed_data_path, random_estimators), "wb") as f:
 			writer  = csv.writer(f)
 			writer.writerow(ab.estimator_errors_)
 

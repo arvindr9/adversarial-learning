@@ -29,12 +29,13 @@ train_data_path = os.getcwd() + '/data/adv_train/rf'
 train_clfs_path = os.getcwd() + '/data/adv_train/rf/clfs'
 
 
+
 #generation params
 max_depth = 10
 criterion = 'entropy'
-no_adv_images = 100
+no_adv_images = 500
 n_estimators = [1, 2, 5, 10, 20, 50, 100]
-epsilons = [0.0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
+epsilons = [0.0, 0.001, 0.01, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 inner_iter = 20
 outer_iter = 5
 no_threads = 20
@@ -78,6 +79,7 @@ parser.add_argument("--adv_size", default = n_boost_random_train_samples, help =
 parser.add_argument("--boosting_iter", default = boosting_iter, help = "number of iterations of the boosting algorithm", type = int)
 parser.add_argument("--train_process", default = 0, help = "whether to process the adversarially trained clf", type = int)
 parser.add_argument("--train_plot", default = 0, help = "whether to plot the data from the training phase", type = int)
+
 
 parser.add_argument("--file_type", default = file_type, help = "format to save images", type = str)
 
@@ -206,10 +208,13 @@ if args_dict['train']:
     ab.main()
     t_end = time.time()
     t_diff = t_end - t_start
-    with open(train_data_path + '/time', 'w') as f:
+    with open(train_data_path + '/time_train_estimators{}'.format(train_estimators), 'w') as f:
         print("Adversarial train time:", t_diff)
         print("Parameters:")
         print(train_config)
+        f.write("Adversarial train time: {}\n".format(t_diff))
+        f.write("Parameters:\n")
+        f.write(str(train_config))
 
 
 train_process_config = {
@@ -230,11 +235,15 @@ train_plot_config = {
     'boosting_iter': boosting_iter,
     'no_threads': train_no_threads,
     'train_data_path': train_data_path,
+    'random_data_path': random_data_path,
     'n_test_adv_images': n_test_adv_images,
     'train_estimators': train_estimators,
-    'epsilons': epsilons
+    'epsilons': epsilons,
+    'gen_data_path': processed_data_path,
+    'gen_estimators': n_estimators #list of estimators used in adv_gen
 }
 
 if args_dict['train_plot']:
     TrainPlot(config = train_plot_config)
+
 
