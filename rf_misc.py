@@ -60,6 +60,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--random_noise", default = 0, help = "whether to run the experiment that adds random noise to the images")
 parser.add_argument("--random_process", default = 0, help = "whether to process the random data")
 parser.add_argument("--random_plot", default = 0, help = "whether to plot the random data")
+parser.add_argument("--boosting_train_size", default = boosting_train_size, help = 'size of clean dataset in the adversarial training', type = int)
+
 
 parser.add_argument("--random_estimators", default = 5, help = "number of estimators for the random script", type = int)
 
@@ -74,6 +76,8 @@ args_dict = {k: v for k,v in arguments.items()}
 file_type = args_dict['file_type']
 # no_adv_images = args_dict['gen_adv_images']
 random_estimators = args_dict['random_estimators']
+
+boosting_train_size = args_dict['boosting_train_size']
 
 
 random_config = {

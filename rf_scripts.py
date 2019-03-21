@@ -48,6 +48,7 @@ train_outer_iter = outer_iter
 train_epsilon = 0.3
 train_max_depth = 5
 boosting_train_size = 5000
+boosting_train_sizes = [5000, 10000, 20000, 30000]
 boosting_iter = 100
 train_estimators = 5
 n_boost_random_train_samples = 500
@@ -74,6 +75,7 @@ parser.add_argument("--transfer_plot", default = 0, help="whether to run the scr
 #train arguments
 parser.add_argument("--train_threads", default = train_no_threads, help = "number of threads for adversarial training", type = int)
 parser.add_argument("--train_estimators", default = train_estimators, help="number of estimators of the random forest to be trained", type = int)
+parser.add_argument("--boosting_train_size", default = boosting_train_size, help = 'size of clean dataset in the adversarial training', type = int)
 parser.add_argument("--train", default = 0, help="whether or not to run the train script", type = int)
 parser.add_argument("--adv_size", default = n_boost_random_train_samples, help = "number of adversarial images that are generated in each training iteration", type = int)
 parser.add_argument("--boosting_iter", default = boosting_iter, help = "number of iterations of the boosting algorithm", type = int)
@@ -96,6 +98,7 @@ n_boost_random_train_samples = args_dict['adv_size']
 train_estimators = args_dict['train_estimators']
 train_no_threads = args_dict['train_threads']
 boosting_iter = args_dict['boosting_iter']
+boosting_train_size = args_dict['boosting_train_size']
 
 file_type = args_dict['file_type']
 no_adv_images = args_dict['gen_adv_images']
@@ -208,7 +211,7 @@ if args_dict['train']:
     ab.main()
     t_end = time.time()
     t_diff = t_end - t_start
-    with open(train_data_path + '/time_train_estimators{}'.format(train_estimators), 'w') as f:
+    with open(train_data_path + '/time_train_estimators_{}_train_size_{}'.format(train_estimators, boosting_train_size), 'w') as f:
         print("Adversarial train time:", t_diff)
         print("Parameters:")
         print(train_config)
@@ -235,7 +238,6 @@ train_plot_config = {
     'boosting_iter': boosting_iter,
     'no_threads': train_no_threads,
     'train_data_path': train_data_path,
-    'random_data_path': random_data_path,
     'n_test_adv_images': n_test_adv_images,
     'train_estimators': train_estimators,
     'epsilons': epsilons,

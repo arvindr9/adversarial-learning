@@ -186,8 +186,8 @@ class AdvTrainRandom:
 
 			if iboost % 5 == 0:
 				if iboost >= 5:
-					os.remove(self.random_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '.pkl')
-				save_object(self, self.random_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '.pkl')
+					os.remove(self.random_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '_train_size_' + str(self.train_size) +'.pkl')
+				save_object(self, self.random_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '_train_size_' + str(self.train_size) +'.pkl')
 
 		return self
 
@@ -335,4 +335,4 @@ class AdvTrainRandom:
 		self.fit(train_data, train_labels)
 
 		# Saving the random forest to a pkl file
-		save_object(self, self.random_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf)+ '.pkl')
+		save_object(self, self.random_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf)+ '_train_size_' + str(self.train_size) +'.pkl')

@@ -14,6 +14,7 @@ from multiprocessing import Process, Manager
 import os
 from math import ceil
 import parallel_utils
+import copy
 
 def save_object(obj, filename):
    with open(filename, 'wb') as output:  # Overwrites any existing file.
@@ -41,20 +42,18 @@ class AdversarialBoost:
 		elif self.base_classifier == 'svm':
 			self.base_estimator = SVC()
 
+		#parameters for the training loop
 		self.inner_iter = config['inner_iter']
 		self.outer_iter = config['outer_iter']
+		self.epsilon = config['epsilon']
+
 		self.n_boosting_clf = config['boosting_iter']
 		self.estimators_ = []
 		self.estimator_errors_ = np.ones(self.n_boosting_clf, dtype= np.float64)
-		self.epsilon = config['epsilon']
+		
 		self.n_boost_random_train_samples = config['n_boost_random_train_samples']
 		self.estimator_params = config['estimator_params']
-		self.total_boosting_time = [] #Total time for each boosting step
-		self.fitting_time = []	#Time for training one boosting classifier
-		self.adv_generation_time = [] #Total time for generating all the adversarial images in each step
-		self.concatenate_time = [] #Time for concatenating images
-		self.per_image_advGen_time = [] #Time per image adversarial image generation
-		self.rand_idxs = []
+
 		self.train_size = config['train_size']
 		self.train_data_path = config['train_data_path']
 		self.no_threads = config['no_threads']
@@ -62,10 +61,6 @@ class AdversarialBoost:
 		if(isinstance(self.base_estimator, SVC)):
 				
 			self.base_estimator.set_params(**{'probability': True})
-
-		if(isinstance(self.base_estimator, DecisionTreeClassifier)):
-
-			self.base_estimator.set_params(**{'max_depth': 5})
 
 		if(isinstance(self.base_estimator, RandomForestClassifier)):
 
@@ -85,12 +80,10 @@ class AdversarialBoost:
 		clean_data = X[clean_indices]
 		clean_labels = y[clean_indices]
 
-		#each iteration: take 5000 random examples, generate adv and append to the adv list
-
-
-
+		#each iteration: take 500 random examples, generate adv and append to the adv list
 
 		for iboost in range(self.n_boosting_clf):
+
 			clean_data = X[clean_indices]
 			clean_labels = y[clean_indices]
 
@@ -102,33 +95,16 @@ class AdversarialBoost:
 			else:
 				X_union = clean_data
 				y_union = clean_labels
-			
 
-			b_tot_start = time.time()
-
-
-			b_fit_start = time.time()
-
-
-			print "Boosting step : %d" %iboost
-
+			print("Boosting step : {}".format(iboost))
 
 			# Training the weak classifier
 			cur_estimator, estimator_error = self._boost(iboost, X_union, y_union)
 
-
-			b_fit_end = time.time()
-
 			#Generating adversarial examples
+			print("Generating adversarial examples.....")
 
-			b_adv_gen_start = time.time()
-
-			print "Generating adversarial examples....." 
-
-
-			
 			rand_idx = np.random.randint(0,len(clean_data), (self.n_boost_random_train_samples,))
-			self.rand_idxs.append(rand_idx)
 			rand_X = clean_data[rand_idx] #sample images from the clean data to append to the adv set
 			rand_y = clean_labels[rand_idx].reshape(-1, 1)
 			
@@ -141,14 +117,10 @@ class AdversarialBoost:
 			print("adv images:", self.n_boost_random_train_samples)
 			print("no_threads: ", self.no_threads)
 			print("set_size:", set_size)
-
 			
 			adv_examples, adv_y = parallel_utils.accumulate_parallel_function(self._advGenParallel, self.n_boost_random_train_samples, cur_estimator, self.epsilon, rand_X, rand_y, set_size)
-				
-			b_adv_gen_end = time.time()
 
-
-			print "\nDone with Generating adversarial examples....." 
+			print("Done with Generating adversarial examples.....") 
 
 			b_adv_conc_start = time.time()
 
@@ -161,53 +133,27 @@ class AdversarialBoost:
 				adv_data = adv_examples
 				adv_labels = adv_y
 
-
-			b_adv_conc_end = time.time()
-
-
 			self.estimator_errors_[iboost] = estimator_error
-
-			print "\n"
-
-			b_tot_end = time.time()
-
-			self.total_boosting_time.append(b_tot_end - b_tot_start)
-
-			self.fitting_time.append(b_fit_end - b_fit_start)
-
-			self.adv_generation_time.append(b_adv_gen_end - b_adv_gen_start)
-
-			self.concatenate_time.append(b_adv_conc_end - b_adv_conc_start)
 
 			if iboost % 5 == 0:
 				if iboost >= 5:
-					os.remove(self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5)+ '.pkl')
-				save_object(self, self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost)+ '.pkl')
+					os.remove(self.train_data_path + '/clfs/ab_parallel_train_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5) + '_train_size_' + str(self.train_size) + '.pkl')
+				save_object(self, self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost) + '_train_size_' + str(self.train_size) + '.pkl')
 
 		return self
 
 
-
 	def _boost(self, iboost, X, y):
 
-			
-
 		estimator = self._make_estimator()
-
-
-		# estimator.fit(X, y, sample_weight=sample_weight)
 		estimator.fit(X,y)
-
 		self.estimators_.append(estimator)
 
-
 		y_predict = estimator.predict(X)
-
 
 		if iboost == 0:
 			self.classes_ = getattr(estimator, 'classes_', None)
 			self.n_classes_ = len(self.classes_)
-
 
 		# Instances incorrectly classified
 		incorrect = y_predict != y
@@ -215,12 +161,6 @@ class AdversarialBoost:
 		# Error fraction
 		estimator_error = np.mean(np.average(incorrect, axis=0)) ####
 
-
-		
-		n_classes = self.n_classes_
-
-
-		
 		return estimator, estimator_error
 
 
@@ -229,7 +169,6 @@ class AdversarialBoost:
 		estimator = clone(self.base_estimator)
 
 		if(self.estimator_params is not None):
-
 			estimator.set_params(**dict(self.estimator_params))
 
 		return estimator
@@ -261,32 +200,14 @@ class AdversarialBoost:
 		else:
 			X = rand_X[index:index + set_size, :]
 			y = rand_y[index:index + set_size]
-		# print('inner_iter:', self.inner_iter, 'outer_iter:', self.outer_iter)
 
 		for image_no, image in enumerate(X):
-			
-			# per_image_advGen_start = time.time()
-
-			#print "Generating adversarial examples for image number : %d\n" %image_no ,
-		
 			minimizer_kwargs = dict(method = "slsqp", args = (image, estimator), constraints = cons, options = {'maxiter': self.inner_iter})
 			res = basinhopping(self.fitness_func, niter = self.outer_iter, x0 = x0, minimizer_kwargs = minimizer_kwargs)
 			cur_noise = res['x']
-
-			# per_image_advGen_end = time.time()
-
-			# self.per_image_advGen_time.append(per_image_advGen_end - per_image_advGen_start)
-			
 			optimal_noise.append(cur_noise)
 
 		lst.append((X + optimal_noise, y)) #(adv. images, labels) #changed from y[:][0]
-		
-	'''
-	TODO: Call main from the init method
-	make a config dictionary that takes in the number of estimators and the clf type (don't worry about clf type for now;
-	number of estimators is more important since I want to test this for 5 estimators first)
-	The training size could be decreased
-	'''
 
 	def main(self):
 		#Loading Mnist data
@@ -307,18 +228,9 @@ class AdversarialBoost:
 		eval_data = eval_data[rand_idx_test]
 		eval_labels = eval_labels[rand_idx_test]
 
-		# self.rand_idx_train = rand_idx_train
-		# self.rand_idx_test = rand_idx_test
-
 		#Adversarial Training
-
 		print "\n\n Training Random forest with adversarial images"
-
-		# ab = AdversarialBoost(RandomForestClassifier(), no_boosting_clf, epsilon_train, n_boost_random_train_samples, rand_idx_train, rand_idx_test, estimator_params = estimator_params)
-		# ab.fit(train_data_ss, train_labels_ss)
-
-		#self.fit(train_data_ss, train_labels_ss)
 		self.fit(train_data, train_labels)
 
 		# Saving the random forest to a pkl file
-		save_object(self, self.train_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf)+ '.pkl')
+		save_object(self, self.train_data_path + '/clfs/ab_est_' + str(self.estimator_params['n_estimators']) +'_steps_'+ str(self.n_boosting_clf) + '_train_size_' + str(self.train_size) + '.pkl')
