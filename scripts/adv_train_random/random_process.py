@@ -20,6 +20,7 @@ class RandomProcess:
 		random_estimators = config['random_estimators']
 		no_threads = config['no_threads']
 		epsilon_test_list = config['epsilons']
+		train_size = config['train_size']
 
 		mnist = tf.contrib.learn.datasets.load_dataset("mnist")
 		eval_data = mnist.test.images  # Returns np.array
@@ -31,7 +32,7 @@ class RandomProcess:
 		eval_labels_subset = eval_labels[indices]
 
 
-		clf_data_path = random_data_path + '/clfs/ab_est_{}_steps_{}.pkl'.format(random_estimators, boosting_iter)
+		clf_data_path = random_data_path + '/clfs/ab_est_{}_steps_{}'.format(random_estimators, boosting_iter) + '_train_size_' + str(train_size) +'.pkl'
 		processed_data_path = random_data_path + '/processed_data'
 
 		f = open(clf_data_path)
@@ -75,28 +76,11 @@ class RandomProcess:
 				accuracy.append(cur_est_acc)
 
 
-		# print "\n\n For the first estimator"
-
-		# cur_est_acc = []
-
-		# est = estimators_list[0]
-
-		# for epsilon_test in epsilon_test_list:
-
-		# 	#Generating some adversarial examples
-
-		# 	print "\n current epsilon %f" %epsilon_test
-
-		# 	adv_examples_test_adv, true_labels_adv = parallel_utils.accumulate_parallel_function(ab._advGenParallel, n_test_adv_images, est, epsilon_test, eval_data_subset, eval_labels_subset, set_size)
-		# 	cur_est_acc.append(accuracy_score(true_labels_adv, est.predict(adv_examples_test_adv)))
-	
-		# accuracy.append(cur_est_acc)
-
-		with open("{}/accuracy_{}.csv".format(processed_data_path, random_estimators), "wb") as f:
+		with open("{}/accuracy_{}.csv".format(processed_data_path, random_estimators) + '_train_size_' + str(train_size) +'.csv', "wb") as f:
 			writer = csv.writer(f)
 			writer.writerows(accuracy)
 
-		with open('{}/est_error_{}.csv'.format(processed_data_path, random_estimators), "wb") as f:
+		with open('{}/est_error_{}.csv'.format(processed_data_path, random_estimators) + '_train_size_' + str(train_size) +'.csv', "wb") as f:
 			writer  = csv.writer(f)
 			writer.writerow(ab.estimator_errors_)
 

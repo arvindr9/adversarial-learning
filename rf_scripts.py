@@ -227,7 +227,8 @@ train_process_config = {
     'train_data_path': train_data_path,
     'n_test_adv_images': n_test_adv_images,
     'train_estimators': train_estimators,
-    'epsilons': epsilons
+    'epsilons': epsilons,
+    'train_size': boosting_train_size
 }
 
 if args_dict['train_process']:
@@ -242,7 +243,8 @@ train_plot_config = {
     'train_estimators': train_estimators,
     'epsilons': epsilons,
     'gen_data_path': processed_data_path,
-    'gen_estimators': n_estimators #list of estimators used in adv_gen
+    'gen_estimators': n_estimators, #list of estimators used in adv_gen
+    'train_size': boosting_train_size
 }
 
 if args_dict['train_plot']:

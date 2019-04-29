@@ -137,7 +137,7 @@ class AdversarialBoost:
 
 			if iboost % 5 == 0:
 				if iboost >= 5:
-					os.remove(self.train_data_path + '/clfs/ab_parallel_train_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5) + '_train_size_' + str(self.train_size) + '.pkl')
+					os.remove(self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost - 5) + '_train_size_' + str(self.train_size) + '.pkl')
 				save_object(self, self.train_data_path + '/clfs/ab_parallel_' + str(self.estimator_params['n_estimators']) +'_'+ str(iboost) + '_train_size_' + str(self.train_size) + '.pkl')
 
 		return self

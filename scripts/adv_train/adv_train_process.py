@@ -21,6 +21,7 @@ class TrainProcess:
 		boosting_iter = config['boosting_iter']
 		train_estimators = config['train_estimators']
 		epsilon_test_list = config['epsilons']
+		train_size = config['train_size']
 
 		mnist = tf.contrib.learn.datasets.load_dataset("mnist")
 		eval_data = mnist.test.images  # Returns np.array
@@ -32,7 +33,7 @@ class TrainProcess:
 		eval_labels_subset = eval_labels[indices]
 
 
-		clf_data_path = train_data_path + '/clfs/ab_est_{}_steps_{}.pkl'.format(train_estimators, boosting_iter)
+		clf_data_path = train_data_path + '/clfs/ab_est_' + str(train_estimators) +'_steps_'+ str(boosting_iter) + '_train_size_' + str(train_size) + '.pkl'
 		processed_data_path = train_data_path + '/processed_data'
 
 		f = open(clf_data_path)
@@ -92,11 +93,11 @@ class TrainProcess:
 	
 		# accuracy.append(cur_est_acc)
 
-		with open("{}/accuracy_{}.csv".format(processed_data_path, train_estimators), "wb") as f:
+		with open("{}/accuracy_{}".format(processed_data_path, train_estimators) + '_train_size_' + str(train_size) + '.csv', "wb") as f:
 			writer = csv.writer(f)
 			writer.writerows(accuracy)
 
-		with open('{}/est_error_{}.csv'.format(processed_data_path, train_estimators), "wb") as f:
+		with open('{}/est_error_{}'.format(processed_data_path, train_estimators) + '_train_size_' + str(train_size) + '.csv', "wb") as f:
 			writer  = csv.writer(f)
 			writer.writerow(ab.estimator_errors_)
 

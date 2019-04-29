@@ -1,9 +1,11 @@
 from scripts.adv_gen_cifar.adv_gen_cifar import AdversarialGeneration
+from scripts.adv_gen_cifar.process_cifar import ProcessData
+from scripts.adv_gen_cifar.adv_test_cifar import AdversarialTest
+from scripts.adv_gen_cifar.adv_gen_images import GenImages
+
 import os
 import argparse
 import time
-
-
 
 
 base_classifier = 'random_forest'
@@ -11,13 +13,14 @@ home_path = os.getcwd()
 data_path = raw_data_path = os.getcwd() + '/data/adv_gen_cifar/rf/raw_data'
 processed_data_path = os.getcwd() + '/data/adv_gen_cifar/rf/processed_data'
 plot_path = os.getcwd() + '/data/adv_gen_cifar/rf/plots'
+image_dest_path = os.getcwd() + '/data/adv_gen_cifar/rf/images'
 
 #generation params
 max_depth = 10
 criterion = 'entropy'
 no_adv_images = 100
-n_estimators = [1, 2, 5]#, 10, 20, 50, 100] #CHANGE
-epsilons = [0.0, 0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0] #CHANGE #[0.0, 0.001, 0.01, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+n_estimators = [5]#, 10, 20, 50, 100] #CHANGE
+epsilons = [0.0, 0.1, 0.2, 1.0, 2.0, 5.0, 10.0] #CHANGE #[0.0, 0.001, 0.01, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 inner_iter = 20
 outer_iter = 5
 no_threads = 5#20 #CHANGE
@@ -35,6 +38,7 @@ parser.add_argument("--plot", default = 0, help ="whether to plot the data", typ
 parser.add_argument("--train_size", default = train_size, help="size of the subset of the training set", type = int)
 parser.add_argument("--gen_adv_images", default = no_adv_images, help="number of adversarial images to create in the adversarial generation", type = int)
 parser.add_argument("--gen_threads", default = no_threads, help = "number of threads for generation", type = int)
+parser.add_argument("--process_images", default = 0, help = "whether to process the real and adversarial images", type = int)
 
 
 parser.add_argument("--file_type", default = file_type, help = "format to save images", type = str)
@@ -71,7 +75,8 @@ gen_config = {
     'inner_iter': inner_iter,
     'outer_iter': outer_iter,
     'no_threads': no_threads,
-    'home_path': home_path
+    'home_path': home_path,
+    'train_size': train_size
 }
 
 #Certain global variables should not be shared
@@ -90,3 +95,36 @@ if args_dict['gen']:
         f.write("Outer iterations: {}\n".format(gen_config['outer_iter']))
         f.write("Training set size: {}\n".format(gen_config['train_size']))
         f.write("Adversarial genaration time: {} seconds".format(t_end - t_start))
+
+process_config = {
+    'base_classifier': base_classifier,
+    'raw_data_path': raw_data_path,
+    'processed_data_path': processed_data_path,
+    'no_adv_images': no_adv_images,
+    'n_estimators': n_estimators,
+    'epsilons': epsilons
+}
+
+if args_dict['process']: ProcessData(config = process_config)
+
+test_config = {
+    'base_classifier': base_classifier,
+    'processed_data_path': processed_data_path,
+    'plot_path': plot_path,
+    'epsilons': epsilons,
+    'n_estimators': n_estimators,
+    'file_type': file_type
+}
+
+if args_dict['plot']: AdversarialTest(config = test_config)
+
+image_config = {
+    'epsilons': epsilons,
+    'raw_data_path': raw_data_path,
+    'image_dest_path': image_dest_path,
+    'n_adv_images': no_adv_images
+}
+
+if args_dict['process_images']:
+    print("about to call GenImages")
+    GenImages(config = image_config)

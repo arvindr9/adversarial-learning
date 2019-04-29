@@ -62,6 +62,8 @@ parser.add_argument("--random_process", default = 0, help = "whether to process 
 parser.add_argument("--random_plot", default = 0, help = "whether to plot the random data")
 parser.add_argument("--boosting_train_size", default = boosting_train_size, help = 'size of clean dataset in the adversarial training', type = int)
 
+parser.add_argument("--train_threads", default = train_no_threads, help = "number of threads for processing", type = int)
+
 
 parser.add_argument("--random_estimators", default = 5, help = "number of estimators for the random script", type = int)
 
@@ -78,6 +80,7 @@ file_type = args_dict['file_type']
 random_estimators = args_dict['random_estimators']
 
 boosting_train_size = args_dict['boosting_train_size']
+train_no_threads = args_dict['train_threads']
 
 
 random_config = {
@@ -104,7 +107,8 @@ process_config = {
     'boosting_iter': boosting_iter,
     'random_estimators': random_estimators,
     'epsilons': epsilons,
-    'no_threads': no_threads
+    'no_threads': train_no_threads,
+    'train_size': boosting_train_size
 }
 
 if args_dict['random_process']:
@@ -118,7 +122,8 @@ plot_config = {
     'random_data_path': random_data_path,
     'random_estimators': random_estimators,
     'gen_estimators': n_estimators,
-    'boosting_iter': boosting_iter
+    'boosting_iter': boosting_iter,
+    'train_size': boosting_train_size
 
 }
 

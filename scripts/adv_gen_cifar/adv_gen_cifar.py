@@ -69,8 +69,14 @@ class AdversarialGeneration(object):
         # Load training and eval data
         from keras.datasets import cifar10
         (train_data, train_labels), (eval_data, eval_labels) = cifar10.load_data()
+        train_data = np.array(train_data, dtype = 'float32')
+        eval_data = np.array(eval_data, dtype = 'float32')
+        train_labels = train_labels.flatten()
+        eval_labels = eval_labels.flatten()
         train_data = train_data.reshape(train_data.shape[0], train_data.shape[1] * train_data.shape[2] * train_data.shape[3])
         eval_data = eval_data.reshape(eval_data.shape[0], eval_data.shape[1] * eval_data.shape[2] * eval_data.shape[3])
+        train_data /= 255.
+        eval_data /= 255.
         #Subsampling the training dataset
         rand_idx_train = np.random.randint(0,len(train_data), ((self.train_size),))
         self.train_data_ss = train_data[rand_idx_train]
